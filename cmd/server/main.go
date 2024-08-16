@@ -18,7 +18,11 @@ func main() {
 	}
 
 	s := rpc.NewServer()
-	err = s.RegisterName("nitro", server.NewServer())
+	serv, err := server.NewServer()
+	if err != nil {
+		log.Crit("Error creating API server", "error", err)
+	}
+	err = s.RegisterName("nitro", serv)
 	if err != nil {
 		log.Crit("Error registering API", "error", err)
 	}
