@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/mdehoog/op-nitro/server"
+	"github.com/mdehoog/op-nitro/enclave"
 	"github.com/mdlayher/vsock"
 )
 
@@ -18,7 +18,7 @@ func main() {
 	}
 
 	s := rpc.NewServer()
-	serv, err := server.NewServer()
+	serv, err := enclave.NewServer()
 	if err != nil {
 		log.Crit("Error creating API server", "error", err)
 	}

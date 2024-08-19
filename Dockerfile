@@ -29,7 +29,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o bin/server ./cmd/server
+RUN CGO_ENABLED=0 go build -o bin/enclave ./cmd/enclave
 
 COPY --from=bootstrap /build/out bootstrap
 RUN linuxkit build --format kernel+initrd --no-sbom --name init-ramdisk ./eif/init-ramdisk.yaml

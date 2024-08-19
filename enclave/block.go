@@ -1,4 +1,4 @@
-package server
+package enclave
 
 import (
 	"encoding/json"
