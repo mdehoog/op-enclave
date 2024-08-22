@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/stateless"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -35,7 +36,8 @@ const (
 )
 
 var (
-	defaultRoot = createAWSNitroRoot()
+	defaultRoot                = createAWSNitroRoot()
+	l2ToL1MessagePasserAddress = common.HexToAddress("0x4200000000000000000000000000000000000016")
 )
 
 func createAWSNitroRoot() *x509.CertPool {
@@ -205,28 +207,35 @@ func (s *Server) SetSignerKey(encrypted hexutil.Bytes) error {
 	return nil
 }
 
-type StatelessResponse struct {
-	StateRoot   common.Hash
-	ReceiptRoot common.Hash
-	Signature   hexutil.Bytes
+type Proposal struct {
+	OutputRoot common.Hash
+	Signature  hexutil.Bytes
 }
 
-func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block, witness hexutil.Bytes) (*StatelessResponse, error) {
+func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block, witness hexutil.Bytes, messageAccount *AccountResult, prevMessageAccountHash common.Hash) (*Proposal, error) {
 	w := &stateless.Witness{}
 	err := rlp.DecodeBytes(witness, w)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode witness: %w", err)
 	}
 
-	stateRoot, receiptRoot, err := core.ExecuteStateless(chainConfig, block.Block, w)
+	stateRoot, _, err := core.ExecuteStateless(chainConfig, block.Block, w)
 
-	data, err := json.Marshal(chainConfig)
+	if err = messageAccount.Verify(l2ToL1MessagePasserAddress, stateRoot); err != nil {
+		return nil, fmt.Errorf("failed to verify message account: %w", err)
+	}
+
+	prevOutputRoot := outputRootV0(w.Headers[0], prevMessageAccountHash)
+	outputRoot := outputRootV0(block.Header(), messageAccount.StorageHash)
+
+	chainConfigJson, err := json.Marshal(chainConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
 	}
-	data = crypto.Keccak256(data)
-	data = append(data, w.Root().Bytes()...)
-	data = append(data, stateRoot.Bytes()...)
+	chainConfigJsonHash := crypto.Keccak256(chainConfigJson)
+
+	data := append(chainConfigJsonHash, prevOutputRoot[:]...)
+	data = append(data, outputRoot[:]...)
 	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
@@ -235,9 +244,17 @@ func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block,
 	if err != nil {
 		return nil, err
 	}
-	return &StatelessResponse{
-		StateRoot:   stateRoot,
-		ReceiptRoot: receiptRoot,
-		Signature:   sig,
+	return &Proposal{
+		OutputRoot: outputRoot,
+		Signature:  sig,
 	}, nil
+}
+
+func outputRootV0(header *types.Header, storageRoot common.Hash) common.Hash {
+	hash := header.Hash()
+	var buf [128]byte
+	copy(buf[32:], header.Root[:])
+	copy(buf[64:], storageRoot[:])
+	copy(buf[96:], hash[:])
+	return crypto.Keccak256Hash(buf[:])
 }
