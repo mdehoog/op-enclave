@@ -250,6 +250,36 @@ func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block,
 	}, nil
 }
 
+func (s *Server) Aggregate(chainConfig *params.ChainConfig, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
+	chainConfigJson, err := json.Marshal(chainConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
+	}
+	chainConfigJsonHash := crypto.Keccak256(chainConfigJson)
+
+	outputRoot := prevOutputRoot
+	for _, p := range proposals {
+		data := append(chainConfigJsonHash, outputRoot[:]...)
+		data = append(data, p.OutputRoot[:]...)
+		if !crypto.VerifySignature(crypto.FromECDSAPub(&s.signerKey.PublicKey), crypto.Keccak256(data), p.Signature[:64]) {
+			return nil, errors.New("invalid signature")
+		}
+		outputRoot = p.OutputRoot
+	}
+
+	data := append(chainConfigJsonHash, prevOutputRoot[:]...)
+	data = append(data, outputRoot[:]...)
+	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign: %w", err)
+	}
+
+	return &Proposal{
+		OutputRoot: outputRoot,
+		Signature:  sig,
+	}, nil
+}
+
 func outputRootV0(header *types.Header, storageRoot common.Hash) common.Hash {
 	hash := header.Hash()
 	var buf [128]byte
