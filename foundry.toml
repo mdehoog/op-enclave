@@ -5,6 +5,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+viaIR = true
 ffi = true
 fs_permissions = [
     { access='read', path='./deploy-config/' },
