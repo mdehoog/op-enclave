@@ -11,6 +11,8 @@ import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol"
 import { L2OutputOracle } from "@eth-optimism-bedrock/src/L1/L2OutputOracle.sol";
 import { Portal } from "src/Portal.sol";
 import { OutputOracle } from "src/OutputOracle.sol";
+import { SystemConfigOwnable } from "src/SystemConfigOwnable.sol";
+import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
 
@@ -84,7 +86,7 @@ contract DeploySystem is Deploy {
         console.log("Deploying implementations");
         deployL1CrossDomainMessenger();
         deployOptimismMintableERC20Factory();
-        deploySystemConfig();
+        deploySystemConfigOwnable();
         deployL1StandardBridge();
         deployL1ERC721Bridge();
         deployPortal();
@@ -94,12 +96,26 @@ contract DeploySystem is Deploy {
     function initializeImplementations2() public {
         console.log("Initializing implementations");
         initializePortal();
-        initializeSystemConfig();
+        initializeSystemConfigOwnable();
         initializeL1StandardBridge();
         initializeL1ERC721Bridge();
         initializeOptimismMintableERC20Factory();
         initializeL1CrossDomainMessenger();
         initializeOutputOracle();
+    }
+
+    function deploySystemConfigOwnable() public broadcast returns (address addr_) {
+        console.log("Deploying SystemConfig implementation");
+        addr_ = address(new SystemConfigOwnable{ salt: _implSalt() }(cfg.finalSystemOwner()));
+        save("SystemConfig", addr_);
+        console.log("SystemConfig deployed at %s", addr_);
+
+        // Override the `SystemConfig` contract to the deployed implementation. This is necessary
+        // to check the `SystemConfig` implementation alongside dependent contracts, which
+        // are always proxies.
+        Types.ContractSet memory contracts = _proxiesUnstrict();
+        contracts.SystemConfig = addr_;
+        ChainAssertions.checkSystemConfig({ _contracts: contracts, _cfg: cfg, _isProxy: false });
     }
 
     function deployPortal() public broadcast returns (address addr_) {
@@ -135,6 +151,51 @@ contract DeploySystem is Deploy {
         });
 
         addr_ = address(oracle);
+    }
+
+    function initializeSystemConfigOwnable() public broadcast {
+        console.log("Upgrading and initializing SystemConfig proxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+        address systemConfig = mustGetAddress("SystemConfig");
+
+        bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
+
+        address customGasTokenAddress = Constants.ETHER;
+        if (cfg.useCustomGasToken()) {
+            customGasTokenAddress = cfg.customGasTokenAddress();
+        }
+
+        _upgradeAndCallViaSafe({
+            _proxy: payable(systemConfigProxy),
+            _implementation: systemConfig,
+            _innerCallData: abi.encodeCall(
+                SystemConfigOwnable.initialize,
+                (
+                    cfg.basefeeScalar(),
+                    cfg.blobbasefeeScalar(),
+                    batcherHash,
+                    uint64(cfg.l2GenesisBlockGasLimit()),
+                    cfg.p2pSequencerAddress(),
+                    Constants.DEFAULT_RESOURCE_CONFIG(),
+                    cfg.batchInboxAddress(),
+                    SystemConfig.Addresses({
+                        l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
+                        l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
+                        l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
+                        disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
+                        optimismPortal: mustGetAddress("OptimismPortalProxy"),
+                        optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
+                        gasPayingToken: customGasTokenAddress
+                    })
+                )
+            )
+        });
+
+        SystemConfig config = SystemConfig(systemConfigProxy);
+        string memory version = config.version();
+        console.log("SystemConfig version: %s", version);
+
+        ChainAssertions.checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
     function initializePortal() public broadcast {
