@@ -24,13 +24,13 @@ contract OutputOracle is Initializable, ISemver {
 
     /// @notice The address of the proposer. Can be updated via upgrade.
     /// @custom:network-specific
-    address public proposer;
+    address public immutable proposer;
+
+    /// @notice Maximum number of outputs to store in l2Outputs.
+    uint256 public immutable maxOutputCount;
 
     /// @notice Pointer inside l2Outputs to the latest submitted output.
     uint256 public latestOutputIndex;
-
-    /// @notice Maximum number of outputs to store in l2Outputs.
-    uint256 public maxOutputCount;
 
     /// @notice Emitted when an output is proposed.
     /// @param outputRoot    The output root.
@@ -47,26 +47,21 @@ contract OutputOracle is Initializable, ISemver {
 
     /// @notice Constructs the L3OutputOracle contract. Initializes variables to the same values as
     ///         in the getting-started config.
-    constructor() {
-        initialize({
-            _proposer: address(0),
-            _maxOutputCount: 1
-        });
+    /// @param _proposer            The address of the proposer.
+    /// @param _maxOutputCount      The maximum number of outputs stored by this contract.
+    constructor(
+        address _proposer,
+        uint256 _maxOutputCount
+    ) {
+        proposer = _proposer;
+        maxOutputCount = _maxOutputCount;
+        initialize();
     }
 
     /// @notice Initializer.
-    /// @param _proposer            The address of the proposer.
-    /// @param _maxOutputCount      The maximum number of outputs stored by this contract.
-    function initialize(
-        address _proposer,
-        uint256 _maxOutputCount
-    )
-    public
-    initializer
+    function initialize() public initializer
     {
-        proposer = _proposer;
-        maxOutputCount = _maxOutputCount;
-        latestOutputIndex = _maxOutputCount-1;
+        latestOutputIndex = maxOutputCount-1;
     }
 
     /// @notice Accepts an outputRoot of the corresponding L2 block.
@@ -80,8 +75,8 @@ contract OutputOracle is Initializable, ISemver {
         bytes32 _l1BlockHash,
         uint256 _l1BlockNumber
     )
-    external
-    payable
+        external
+        payable
     {
         // TODO: implement AWS Nitro private key validation here!
 

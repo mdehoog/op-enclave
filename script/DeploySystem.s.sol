@@ -134,7 +134,10 @@ contract DeploySystem is Deploy {
 
     function deployOutputOracle() public broadcast returns (address addr_) {
         console.log("Deploying L2OutputOracle implementation");
-        OutputOracle oracle = new OutputOracle{ salt: _implSalt() }();
+        OutputOracle oracle = new OutputOracle{ salt: _implSalt() }(
+            cfg.l2OutputOracleProposer(),
+            1000 // TODO move to config
+        );
 
         save("L2OutputOracle", address(oracle));
         console.log("L2OutputOracle deployed at %s", address(oracle));
@@ -235,11 +238,7 @@ contract DeploySystem is Deploy {
             _proxy: payable(l2OutputOracleProxy),
             _implementation: l2OutputOracle,
             _innerCallData: abi.encodeCall(
-                OutputOracle.initialize,
-                (
-                    cfg.l2OutputOracleProposer(),
-                    1000 // TODO move to config
-                )
+                OutputOracle.initialize, ()
             )
         });
 
