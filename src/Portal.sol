@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { SafeCall } from "@eth-optimism-bedrock/src/libraries/SafeCall.sol";
 import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
-import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
-import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
+import { SafeCall } from "@eth-optimism-bedrock/src/libraries/SafeCall.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Hashing } from "@eth-optimism-bedrock/src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "@eth-optimism-bedrock/src/libraries/trie/SecureMerkleTrie.sol";
-import { AddressAliasHelper } from "@eth-optimism-bedrock/src/vendor/AddressAliasHelper.sol";
-import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { L1Block } from "@eth-optimism-bedrock/src/L2/L1Block.sol";
-import { Predeploys } from "@eth-optimism-bedrock/src/libraries/Predeploys.sol";
 import "@eth-optimism-bedrock/src/libraries/PortalErrors.sol";
 
 /// @custom:proxied
@@ -36,8 +29,8 @@ contract Portal is OptimismPortal {
         Types.OutputRootProof calldata _outputRootProof,
         bytes[] calldata _withdrawalProof
     )
-    external
-    whenNotPaused
+        external
+        whenNotPaused
     {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2.
