@@ -13,6 +13,7 @@ import { Portal } from "src/Portal.sol";
 import { OutputOracle } from "src/OutputOracle.sol";
 import { SystemConfigOwnable } from "src/SystemConfigOwnable.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
+import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
 
@@ -115,7 +116,7 @@ contract DeploySystem is Deploy {
         // are always proxies.
         Types.ContractSet memory contracts = _proxiesUnstrict();
         contracts.SystemConfig = addr_;
-        ChainAssertions.checkSystemConfig({ _contracts: contracts, _cfg: cfg, _isProxy: false });
+        checkSystemConfig({ _contracts: contracts, _cfg: cfg, _isProxy: false });
     }
 
     function deployPortal() public broadcast returns (address addr_) {
@@ -163,11 +164,6 @@ contract DeploySystem is Deploy {
 
         bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
 
-        address customGasTokenAddress = Constants.ETHER;
-        if (cfg.useCustomGasToken()) {
-            customGasTokenAddress = cfg.customGasTokenAddress();
-        }
-
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
             _implementation: systemConfig,
@@ -188,7 +184,7 @@ contract DeploySystem is Deploy {
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
-                        gasPayingToken: customGasTokenAddress
+                        gasPayingToken: Constants.ETHER
                     })
                 )
             )
@@ -198,7 +194,7 @@ contract DeploySystem is Deploy {
         string memory version = config.version();
         console.log("SystemConfig version: %s", version);
 
-        ChainAssertions.checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
+        checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
     function initializePortal() public broadcast {
@@ -271,6 +267,70 @@ contract DeploySystem is Deploy {
             require(oracle.proposer() == _cfg.l2OutputOracleProposer());
         } else {
             require(oracle.proposer() == address(0));
+        }
+    }
+
+    function checkSystemConfig(Types.ContractSet memory _contracts, DeployConfig _cfg, bool _isProxy) internal view {
+        console.log("Running chain assertions on the SystemConfig");
+        SystemConfig config = SystemConfig(_contracts.SystemConfig);
+
+        // Check that the contract is initialized
+        ChainAssertions.assertSlotValueIsOne({ _contractAddress: address(config), _slot: 0, _offset: 0 });
+
+        ResourceMetering.ResourceConfig memory resourceConfig = config.resourceConfig();
+
+        if (_isProxy) {
+            require(config.owner() == _cfg.finalSystemOwner());
+            require(config.basefeeScalar() == _cfg.basefeeScalar());
+            require(config.blobbasefeeScalar() == _cfg.blobbasefeeScalar());
+            require(config.batcherHash() == bytes32(uint256(uint160(_cfg.batchSenderAddress()))));
+            require(config.gasLimit() == uint64(_cfg.l2GenesisBlockGasLimit()));
+            require(config.unsafeBlockSigner() == _cfg.p2pSequencerAddress());
+            require(config.scalar() >> 248 == 1);
+            // Check _config
+            ResourceMetering.ResourceConfig memory rconfig = Constants.DEFAULT_RESOURCE_CONFIG();
+            require(resourceConfig.maxResourceLimit == rconfig.maxResourceLimit);
+            require(resourceConfig.elasticityMultiplier == rconfig.elasticityMultiplier);
+            require(resourceConfig.baseFeeMaxChangeDenominator == rconfig.baseFeeMaxChangeDenominator);
+            require(resourceConfig.systemTxMaxGas == rconfig.systemTxMaxGas);
+            require(resourceConfig.minimumBaseFee == rconfig.minimumBaseFee);
+            require(resourceConfig.maximumBaseFee == rconfig.maximumBaseFee);
+            // Depends on start block being set to 0 in `initialize`
+            uint256 cfgStartBlock = _cfg.systemConfigStartBlock();
+            require(config.startBlock() == (cfgStartBlock == 0 ? block.number : cfgStartBlock));
+            require(config.batchInbox() == _cfg.batchInboxAddress());
+            // Check _addresses
+            require(config.l1CrossDomainMessenger() == _contracts.L1CrossDomainMessenger);
+            require(config.l1ERC721Bridge() == _contracts.L1ERC721Bridge);
+            require(config.l1StandardBridge() == _contracts.L1StandardBridge);
+            require(config.disputeGameFactory() == _contracts.DisputeGameFactory);
+            require(config.optimismPortal() == _contracts.OptimismPortal);
+            require(config.optimismMintableERC20Factory() == _contracts.OptimismMintableERC20Factory);
+        } else {
+            require(config.owner() == _cfg.finalSystemOwner());
+            require(config.overhead() == 0);
+            require(config.scalar() == uint256(0x01) << 248); // version 1
+            require(config.basefeeScalar() == 0);
+            require(config.blobbasefeeScalar() == 0);
+            require(config.batcherHash() == bytes32(0));
+            require(config.gasLimit() == 1);
+            require(config.unsafeBlockSigner() == address(0));
+            // Check _config
+            require(resourceConfig.maxResourceLimit == 1);
+            require(resourceConfig.elasticityMultiplier == 1);
+            require(resourceConfig.baseFeeMaxChangeDenominator == 2);
+            require(resourceConfig.systemTxMaxGas == 0);
+            require(resourceConfig.minimumBaseFee == 0);
+            require(resourceConfig.maximumBaseFee == 0);
+            // Check _addresses
+            require(config.startBlock() == type(uint256).max);
+            require(config.batchInbox() == address(0));
+            require(config.l1CrossDomainMessenger() == address(0));
+            require(config.l1ERC721Bridge() == address(0));
+            require(config.l1StandardBridge() == address(0));
+            require(config.disputeGameFactory() == address(0));
+            require(config.optimismPortal() == address(0));
+            require(config.optimismMintableERC20Factory() == address(0));
         }
     }
 }
