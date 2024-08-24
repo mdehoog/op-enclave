@@ -179,20 +179,4 @@ contract OutputOracle is Initializable, ISemver {
     function latestBlockNumber() public view returns (uint256) {
         return l2Outputs.length == 0 ? 0 : l2Outputs[latestOutputIndex].l2BlockNumber;
     }
-
-    /// @notice Getter for the finalizationPeriodSeconds.
-    ///         Legacy, for compatibility with OptimismPortal.
-    /// @return Finalization period in seconds.
-    /// @custom:legacy
-    function FINALIZATION_PERIOD_SECONDS() external pure returns (uint256) {
-        return 0;
-    }
-
-    /// @notice Getter for the startingTimestamp.
-    ///         Legacy, for compatibility with OptimismPortal.
-    /// @return The timestamp of the first L2 block recorded in this contract.
-    /// @custom:legacy
-    function startingTimestamp() external pure returns (uint256) {
-        return 0;
-    }
 }

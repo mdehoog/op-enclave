@@ -77,7 +77,7 @@ contract DeployChain {
         });
 
         Portal(payable(_portal)).initialize(
-            L2OutputOracle(_outputOracle),
+            OutputOracle(_outputOracle),
             SystemConfig(_systemConfig),
             SuperchainConfig(superchainConfig)
         );
