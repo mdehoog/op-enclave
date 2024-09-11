@@ -3,25 +3,27 @@ package enclave
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/hf/nitrite"
 	"github.com/hf/nsm"
 	"github.com/hf/nsm/request"
@@ -208,33 +210,109 @@ func (s *Server) SetSignerKey(encrypted hexutil.Bytes) error {
 }
 
 type Proposal struct {
-	OutputRoot common.Hash
-	Signature  hexutil.Bytes
+	OutputRoot   common.Hash
+	Signature    hexutil.Bytes
+	L1OriginHash common.Hash
 }
 
-func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block, witness hexutil.Bytes, messageAccount *AccountResult, prevMessageAccountHash common.Hash) (*Proposal, error) {
+func (s *Server) ExecuteStateless(
+	config *RollupConfig,
+	l1Origin *types.Header,
+	l1Receipts types.Receipts,
+	previousBlockTxs []*types.Transaction,
+	block *Block,
+	witness hexutil.Bytes,
+	messageAccount *eth.AccountResult,
+	prevMessageAccountHash common.Hash,
+) (*Proposal, error) {
+	// TODO: enforce max sequencer drift
+
+	l1OriginHash := l1Origin.Hash()
+	computed := types.DeriveSha(l1Receipts, trie.NewStackTrie(nil))
+	if computed != l1Origin.ReceiptHash {
+		return nil, errors.New("invalid receipts")
+	}
+
 	w := &stateless.Witness{}
 	err := rlp.DecodeBytes(witness, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode witness: %w", err)
 	}
 
-	stateRoot, _, err := core.ExecuteStateless(chainConfig, block.Block, w)
+	previousBlockHeader := w.Headers[0]
+	previousBlockHash := previousBlockHeader.Hash()
+	if block.Header().ParentHash != previousBlockHash {
+		return nil, errors.New("invalid parent hash")
+	}
 
-	if err = messageAccount.Verify(l2ToL1MessagePasserAddress, stateRoot); err != nil {
+	previousTxHash := types.DeriveSha(types.Transactions(previousBlockTxs), trie.NewStackTrie(nil))
+	if previousTxHash != previousBlockHeader.TxHash {
+		return nil, errors.New("invalid tx hash")
+	}
+
+	previousBlock := types.NewBlockWithHeader(previousBlockHeader).WithBody(types.Body{
+		Transactions: previousBlockTxs,
+	})
+
+	rollupConfig := config.ToRollupConfig()
+	l2Parent, err := derive.L2BlockToBlockRef(rollupConfig, previousBlock)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert L2 block to block ref: %w", err)
+	}
+
+	if l2Parent.L1Origin.Number != l1Origin.Number.Uint64() && l2Parent.L1Origin.Number+1 != l1Origin.Number.Uint64() {
+		return nil, errors.New("invalid L1 origin number")
+	}
+
+	l1Fetcher := NewL1ReceiptsFetcher(l1OriginHash, l1Origin, l1Receipts)
+	l2Fetcher := NewL2SystemConfigFetcher(rollupConfig, previousBlockHash, previousBlockHeader, previousBlockTxs)
+	attributeBuilder := derive.NewFetchingAttributesBuilder(rollupConfig, l1Fetcher, l2Fetcher)
+	payload, err := attributeBuilder.PreparePayloadAttributes(context.Background(), l2Parent, eth.BlockID{
+		Hash:   l1OriginHash,
+		Number: l1Origin.Number.Uint64(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare payload attributes: %w", err)
+	}
+
+	if block.Transactions().Len() < len(payload.Transactions) {
+		return nil, errors.New("invalid transaction count")
+	}
+
+	for i, payloadTx := range payload.Transactions {
+		tx := block.Transactions()[i]
+		if !tx.IsDepositTx() {
+			return nil, errors.New("invalid transaction type")
+		}
+		m, err := tx.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal transaction: %w", err)
+		}
+		if !bytes.Equal(m, payloadTx) {
+			return nil, errors.New("invalid deposit transaction")
+		}
+	}
+
+	stateRoot, _, err := core.ExecuteStateless(&config.ChainConfig, block.Block, w)
+
+	if messageAccount.Address.Cmp(l2ToL1MessagePasserAddress) != 0 {
+		return nil, errors.New("invalid message account address")
+	}
+	if err = messageAccount.Verify(stateRoot); err != nil {
 		return nil, fmt.Errorf("failed to verify message account: %w", err)
 	}
 
-	prevOutputRoot := outputRootV0(w.Headers[0], prevMessageAccountHash)
+	prevOutputRoot := outputRootV0(previousBlockHeader, prevMessageAccountHash)
 	outputRoot := outputRootV0(block.Header(), messageAccount.StorageHash)
 
-	chainConfigJson, err := json.Marshal(chainConfig)
+	configBin, err := config.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
 	}
-	chainConfigJsonHash := crypto.Keccak256(chainConfigJson)
+	configBinHash := crypto.Keccak256(configBin)
 
-	data := append(chainConfigJsonHash, prevOutputRoot[:]...)
+	data := append(configBinHash, l1OriginHash[:]...)
+	data = append(data, prevOutputRoot[:]...)
 	data = append(data, outputRoot[:]...)
 	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
 	if err != nil {
@@ -245,21 +323,25 @@ func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block,
 		return nil, err
 	}
 	return &Proposal{
-		OutputRoot: outputRoot,
-		Signature:  sig,
+		OutputRoot:   outputRoot,
+		Signature:    sig,
+		L1OriginHash: l1OriginHash,
 	}, nil
 }
 
-func (s *Server) Aggregate(chainConfig *params.ChainConfig, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
-	chainConfigJson, err := json.Marshal(chainConfig)
+func (s *Server) Aggregate(config *RollupConfig, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
+	configBin, err := config.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
 	}
-	chainConfigJsonHash := crypto.Keccak256(chainConfigJson)
+	configBinHash := crypto.Keccak256(configBin)
 
 	outputRoot := prevOutputRoot
+	var l1OriginHash common.Hash
 	for _, p := range proposals {
-		data := append(chainConfigJsonHash, outputRoot[:]...)
+		l1OriginHash = p.L1OriginHash
+		data := append(configBinHash, l1OriginHash[:]...)
+		data = append(data, outputRoot[:]...)
 		data = append(data, p.OutputRoot[:]...)
 		if !crypto.VerifySignature(crypto.FromECDSAPub(&s.signerKey.PublicKey), crypto.Keccak256(data), p.Signature[:64]) {
 			return nil, errors.New("invalid signature")
@@ -267,7 +349,8 @@ func (s *Server) Aggregate(chainConfig *params.ChainConfig, prevOutputRoot commo
 		outputRoot = p.OutputRoot
 	}
 
-	data := append(chainConfigJsonHash, prevOutputRoot[:]...)
+	data := append(configBinHash, l1OriginHash[:]...)
+	data = append(data, prevOutputRoot[:]...)
 	data = append(data, outputRoot[:]...)
 	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
 	if err != nil {
