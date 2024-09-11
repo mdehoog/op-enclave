@@ -5,6 +5,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @custom:proxied
 /// @title OutputOracle
@@ -19,6 +20,22 @@ import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 ///          - Additional signature validation for proposeL2Output
 ///          - Allow outputs to be proposed at any time
 contract OutputOracle is Initializable, ISemver {
+    struct DepositItem {
+        uint256 timestamp;
+        bytes32 hash;
+    }
+
+    struct DepositQueue {
+        uint128 start;
+        uint128 end;
+        mapping(uint128 => DepositItem) items;
+    }
+
+    /// @notice Error for an unauthorized CALLER.
+    error Unauthorized();
+    /// @notice Error for an invalid deposit hash.
+    error InvalidHash();
+
     /// @notice An array of L2 output proposals.
     Types.OutputProposal[] internal l2Outputs;
 
@@ -31,6 +48,18 @@ contract OutputOracle is Initializable, ISemver {
 
     /// @notice Pointer inside l2Outputs to the latest submitted output.
     uint256 public latestOutputIndex;
+
+    /// @notice The address of the portal.
+    address private portal;
+
+    /// @notice Mapping of valid signers attested from AWS Nitro.
+    mapping(address => bool) public validSigners;
+
+    /// @notice A hash encoding the last deposit sent to this contract.
+    bytes32 private lastDeposit;
+
+    /// @notice Queue of deposit transactions.
+    DepositQueue private depositQueue;
 
     /// @notice Emitted when an output is proposed.
     /// @param outputRoot    The output root.
@@ -59,27 +88,28 @@ contract OutputOracle is Initializable, ISemver {
     }
 
     /// @notice Initializer.
-    function initialize() public initializer
-    {
+    function initialize() public initializer {
         latestOutputIndex = maxOutputCount-1;
+    }
+
+    function registerSigner(bytes calldata attestation) external {
+        // TODO validate AWS attestation, check PCR0, then add public key to mapping of valid signers
     }
 
     /// @notice Accepts an outputRoot of the corresponding L2 block.
     /// @param _outputRoot    The L2 output of the checkpoint block.
     /// @param _l2BlockNumber The L2 block number that resulted in _outputRoot.
-    /// @param _l1BlockHash   A block hash which must be included in the current chain.
-    /// @param _l1BlockNumber The block number with the specified block hash.
     function proposeL2Output(
         bytes32 _outputRoot,
+        bytes32 _depositHash,
+        uint128 _depositCount,
         uint256 _l2BlockNumber,
-        bytes32 _l1BlockHash,
-        uint256 _l1BlockNumber
+        uint256 _beaconTimestamp,
+        bytes calldata signature
     )
         external
         payable
     {
-        // TODO: implement AWS Nitro private key validation here!
-
         require(msg.sender == proposer, "OutputOracle: only the proposer address can propose new outputs");
 
         require(
@@ -89,19 +119,22 @@ contract OutputOracle is Initializable, ISemver {
 
         require(_outputRoot != bytes32(0), "OutputOracle: L2 output proposal cannot be the zero hash");
 
-        if (_l1BlockHash != bytes32(0)) {
-            // This check allows the proposer to propose an output based on a given L1 block,
-            // without fear that it will be reorged out.
-            // It will also revert if the blockheight provided is more than 256 blocks behind the
-            // chain tip (as the hash will return as zero). This does open the door to a griefing
-            // attack in which the proposer's submission is censored until the block is no longer
-            // retrievable, if the proposer is experiencing this attack it can simply leave out the
-            // blockhash value, and delay submission until it is confident that the L1 block is
-            // finalized.
-            require(
-                blockhash(_l1BlockNumber) == _l1BlockHash,
-                "L3OutputOracle: block hash does not match the hash at the expected height"
-            );
+        (bool success, bytes memory data) = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02.staticcall(abi.encodePacked(_beaconTimestamp));
+        bytes32 beaconRoot = abi.decode(data, (bytes32));
+
+        address signer = ECDSA.recover(
+            // TODO add previous output root to hash
+            keccak256(abi.encodePacked(_outputRoot, _depositHash, beaconRoot)),
+            signature
+        );
+        require(validSigners[signer], "OutputOracle: invalid signature");
+
+        if (_depositCount > 0) {
+            if (_depositHash == bytes32(0)) revert InvalidHash();
+            if (depositQueue.items[depositQueue.start + _depositCount - 1].hash != _depositHash) revert InvalidHash();
+            for (uint128 i = 0; i < _depositCount; i++) {
+                delete depositQueue.items[depositQueue.start++];
+            }
         }
 
         latestOutputIndex = nextOutputIndex();
@@ -117,6 +150,15 @@ contract OutputOracle is Initializable, ISemver {
         } else {
             l2Outputs[latestOutputIndex] = op;
         }
+    }
+
+    function enqueueDeposit(address _from, address _to, bytes calldata _opaqueData) external {
+        if (msg.sender != portal) revert Unauthorized();
+        lastDeposit = keccak256(abi.encodePacked(lastDeposit, from, _to, _opaqueData));
+        depositQueue.items[depositQueue.end++] = DepositItem({
+            timestamp: block.timestamp,
+            hash: lastDeposit
+        });
     }
 
     /// @notice Returns an output by index. Needed to return a struct instead of a tuple.

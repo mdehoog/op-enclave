@@ -14,6 +14,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
@@ -39,6 +40,19 @@ var (
 	defaultRoot                = createAWSNitroRoot()
 	l2ToL1MessagePasserAddress = common.HexToAddress("0x4200000000000000000000000000000000000016")
 )
+var uint256Type abi.Type
+var uint64Type abi.Type
+var boolType abi.Type
+var addressType abi.Type
+var bytes32Type abi.Type
+
+func init() {
+	uint256Type, _ = abi.NewType("uint256", "", nil)
+	uint64Type, _ = abi.NewType("uint64", "", nil)
+	boolType, _ = abi.NewType("bool", "", nil)
+	addressType, _ = abi.NewType("address", "", nil)
+	bytes32Type, _ = abi.NewType("bytes32", "", nil)
+}
 
 func createAWSNitroRoot() *x509.CertPool {
 	roots, err := base64.StdEncoding.DecodeString(DefaultCARoots)
@@ -212,7 +226,68 @@ type Proposal struct {
 	Signature  hexutil.Bytes
 }
 
-func (s *Server) ExecuteStateless(chainConfig *params.ChainConfig, block *Block, witness hexutil.Bytes, messageAccount *AccountResult, prevMessageAccountHash common.Hash) (*Proposal, error) {
+func (s *Server) ExecuteStateless(
+	chainConfig *params.ChainConfig,
+	block *Block,
+	witness hexutil.Bytes,
+	messageAccount *AccountResult,
+	prevMessageAccountHash common.Hash,
+	beaconHash common.Hash,
+	previousDepositHash common.Hash,
+	firstDepositIndex uint64,
+) (*Proposal, error) {
+	// TODO prove all DepositTxs in block (both the L1Info tx as well as Portal deposits)
+	// L1Info tx calldata:
+	//    ///   1. _baseFeeScalar      L1 base fee scalar
+	//    ///   2. _blobBaseFeeScalar  L1 blob base fee scalar
+	//    ///   3. _sequenceNumber     Number of L2 blocks since epoch start.
+	//    ///   4. _timestamp          L1 timestamp.
+	//    ///   5. _number             L1 blocknumber.
+	//    ///   6. _basefee            L1 base fee.
+	//    ///   7. _blobBaseFee        L1 blob base fee.
+	//    ///   8. _hash               L1 blockhash.
+	//    ///   9. _batcherHash        Versioned hash to authenticate batcher by.
+
+	signer := types.LatestSignerForChainID(chainConfig.ChainID)
+	depositCount := 0
+	depositHash := common.Hash{}
+	for i, tx := range block.Transactions() {
+		if tx.IsDepositTx() {
+			if i == 0 {
+				// TODO verify L1Info tx
+			} else {
+				depositCount++
+				args := abi.Arguments{
+					{Name: "lastDeposit", Type: bytes32Type},
+					{Name: "from", Type: addressType},
+					{Name: "to", Type: addressType},
+					{Name: "mint", Type: uint256Type},
+					{Name: "value", Type: uint256Type},
+					{Name: "gasLimit", Type: uint64Type},
+					{Name: "isCreation", Type: boolType},
+				}
+				from, err := signer.Sender(tx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get deposit tx sender: %w", err)
+				}
+				isCreation := tx.To() == nil
+				to := tx.To()
+				if isCreation {
+					to = &common.Address{}
+				}
+				data, err := args.Pack(previousDepositHash, from, *to, tx.Mint(), tx.Value(), tx.Gas(), isCreation)
+				if err != nil {
+					return nil, fmt.Errorf("failed to pack deposit tx data: %w", err)
+				}
+				data = append(data, tx.Data()...)
+				depositHash = crypto.Keccak256Hash(data)
+				previousDepositHash = depositHash
+				// TODO verify against beaconRoot that depositHash exists at firstDepositIndex
+				firstDepositIndex++
+			}
+		}
+	}
+
 	w := &stateless.Witness{}
 	err := rlp.DecodeBytes(witness, w)
 	if err != nil {

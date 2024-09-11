@@ -479,6 +479,9 @@ contract Portal is Initializable, ResourceMetering, ISemver {
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
         emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
+
+        // Add deposit transaction to queue
+        l2Oracle.enqueueDeposit(from, _to, opaqueData);
     }
 
     /// @notice Sets the gas paying token for the L2 system. This token is used as the
