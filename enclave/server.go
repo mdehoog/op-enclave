@@ -260,8 +260,8 @@ func (s *Server) ExecuteStateless(
 		return nil, fmt.Errorf("failed to convert L2 block to block ref: %w", err)
 	}
 
-	if l2Parent.L1Origin.Number != l1Origin.Number.Uint64() && l2Parent.L1Origin.Number+1 != l1Origin.Number.Uint64() {
-		return nil, errors.New("invalid L1 origin number")
+	if l2Parent.L1Origin.Hash != l1OriginHash && l2Parent.L1Origin.Hash != l1Origin.ParentHash {
+		return nil, errors.New("invalid L1 origin")
 	}
 
 	l1Fetcher := NewL1ReceiptsFetcher(l1OriginHash, l1Origin, l1Receipts)
