@@ -292,11 +292,10 @@ func (s *Server) ExecuteStateless(
 		}
 	}
 
-	if block.Transactions().Len() > len(payload.Transactions) {
-		// block contains non-deposit transactions
-		if block.Time() > l1Origin.Time+maxSequencerDriftFjord {
-			return nil, errors.New("L1 origin is too old")
-		}
+	// block must only contain deposit transactions if it is outside the sequencer drift
+	if block.Transactions().Len() > len(payload.Transactions) &&
+		block.Time() > l1Origin.Time+maxSequencerDriftFjord {
+		return nil, errors.New("L1 origin is too old")
 	}
 
 	stateRoot, _, err := core.ExecuteStateless(&config.ChainConfig, block.Block, w)
