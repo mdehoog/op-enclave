@@ -23,7 +23,7 @@ RUN linuxkit build --format kernel+initrd --no-sbom --name user-ramdisk ./eif/us
 
 
 # rust:1.80.1
-FROM rust@sha256:29fe4376919e25b7587a1063d7b521d9db735fc137d3cf30ae41eb326d209471
+FROM rust@sha256:29fe4376919e25b7587a1063d7b521d9db735fc137d3cf30ae41eb326d209471 AS eif
 
 RUN mkdir /build
 WORKDIR /build
@@ -49,3 +49,11 @@ RUN ./target/release/eif_build \
     --ramdisk init-ramdisk-initrd.img \
     --ramdisk user-ramdisk-initrd.img \
     --output eif.bin
+
+
+FROM busybox
+
+RUN mkdir /build
+WORKDIR /build
+
+COPY --from=eif /build/eif.bin .
