@@ -334,18 +334,12 @@ func (s *Server) ExecuteStateless(
 	}, nil
 }
 
-func (s *Server) Aggregate(config *RollupConfig, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
-	configBin, err := config.MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
-	}
-	configBinHash := crypto.Keccak256(configBin)
-
+func (s *Server) Aggregate(configHash common.Hash, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
 	outputRoot := prevOutputRoot
 	var l1OriginHash common.Hash
 	for _, p := range proposals {
 		l1OriginHash = p.L1OriginHash
-		data := append(configBinHash, l1OriginHash[:]...)
+		data := append(configHash[:], l1OriginHash[:]...)
 		data = append(data, outputRoot[:]...)
 		data = append(data, p.OutputRoot[:]...)
 		if !crypto.VerifySignature(crypto.FromECDSAPub(&s.signerKey.PublicKey), crypto.Keccak256(data), p.Signature[:64]) {
@@ -354,7 +348,7 @@ func (s *Server) Aggregate(config *RollupConfig, prevOutputRoot common.Hash, pro
 		outputRoot = p.OutputRoot
 	}
 
-	data := append(configBinHash, l1OriginHash[:]...)
+	data := append(configHash[:], l1OriginHash[:]...)
 	data = append(data, prevOutputRoot[:]...)
 	data = append(data, outputRoot[:]...)
 	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
