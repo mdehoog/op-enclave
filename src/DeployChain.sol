@@ -54,7 +54,8 @@ contract DeployChain {
         address _l1ERC721Bridge = Clones.cloneDeterministic(l1ERC721Bridge, salt);
         address _optimismMintableERC20Factory = Clones.cloneDeterministic(optimismMintableERC20Factory, salt);
 
-        OutputOracle(_outputOracle).initialize();
+        bytes32 configHash = 0; // TODO
+        OutputOracle(_outputOracle).initialize(configHash);
 
         SystemConfig _configTemplate = SystemConfig(systemConfig);
         SystemConfigOwnable(_systemConfig).initialize({

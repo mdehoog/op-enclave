@@ -62,7 +62,7 @@ contract OutputOracle is Initializable, ISemver {
     ) {
         proposer = _proposer;
         maxOutputCount = _maxOutputCount;
-        initialize();
+        initialize(0);
     }
 
     /// @notice Initializer.
@@ -96,10 +96,7 @@ contract OutputOracle is Initializable, ISemver {
 
         require(_outputRoot != bytes32(0), "OutputOracle: L2 output proposal cannot be the zero hash");
 
-        (bool success, bytes memory data) = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02.staticcall(abi.encodePacked(_beaconTimestamp));
-        bytes32 beaconRoot = abi.decode(data, (bytes32));
-
-        previousOutputRoot = l2Outputs[latestOutputIndex].outputRoot;
+        bytes32 previousOutputRoot = l2Outputs[latestOutputIndex].outputRoot;
         address signer = ECDSA.recover(
             keccak256(abi.encodePacked(configHash, blockhash(_l1BlockNumber), previousOutputRoot, _outputRoot)),
             _signature
