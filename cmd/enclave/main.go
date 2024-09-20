@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Crit("Error creating API server", "error", err)
 	}
-	err = s.RegisterName("nitro", serv)
+	err = s.RegisterName(enclave.Namespace, serv)
 	if err != nil {
 		log.Crit("Error registering API", "error", err)
 	}

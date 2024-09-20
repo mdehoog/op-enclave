@@ -76,6 +76,8 @@ type Server struct {
 	decryptionKey *rsa.PrivateKey
 }
 
+var _ RPC = (*Server)(nil)
+
 func NewServer() (*Server, error) {
 	session, err := nsm.OpenDefaultSession()
 	if err != nil {
@@ -111,23 +113,23 @@ func NewServer() (*Server, error) {
 	}, nil
 }
 
-func (s *Server) SignerPublicKey() (hexutil.Bytes, error) {
+func (s *Server) SignerPublicKey(ctx context.Context) (hexutil.Bytes, error) {
 	return crypto.FromECDSAPub(&s.signerKey.PublicKey), nil
 }
 
-func (s *Server) SignerAttestation() (hexutil.Bytes, error) {
-	return s.publicKeyAttestation(s.SignerPublicKey)
+func (s *Server) SignerAttestation(ctx context.Context) (hexutil.Bytes, error) {
+	return s.publicKeyAttestation(ctx, s.SignerPublicKey)
 }
 
-func (s *Server) DecryptionPublicKey() (hexutil.Bytes, error) {
+func (s *Server) DecryptionPublicKey(ctx context.Context) (hexutil.Bytes, error) {
 	return x509.MarshalPKIXPublicKey(s.decryptionKey.Public())
 }
 
-func (s *Server) DecryptionAttestation() (hexutil.Bytes, error) {
-	return s.publicKeyAttestation(s.DecryptionPublicKey)
+func (s *Server) DecryptionAttestation(ctx context.Context) (hexutil.Bytes, error) {
+	return s.publicKeyAttestation(ctx, s.DecryptionPublicKey)
 }
 
-func (s *Server) publicKeyAttestation(publicKey func() (hexutil.Bytes, error)) (hexutil.Bytes, error) {
+func (s *Server) publicKeyAttestation(ctx context.Context, publicKey func(ctx context.Context) (hexutil.Bytes, error)) (hexutil.Bytes, error) {
 	session, err := nsm.OpenDefaultSession()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open session: %w", err)
@@ -135,7 +137,7 @@ func (s *Server) publicKeyAttestation(publicKey func() (hexutil.Bytes, error)) (
 	defer func() {
 		_ = session.Close()
 	}()
-	public, err := publicKey()
+	public, err := publicKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public key: %w", err)
 	}
@@ -154,7 +156,7 @@ func (s *Server) publicKeyAttestation(publicKey func() (hexutil.Bytes, error)) (
 	return res.Attestation.Document, nil
 }
 
-func (s *Server) EncryptedSignerKey(attestation hexutil.Bytes) (hexutil.Bytes, error) {
+func (s *Server) EncryptedSignerKey(ctx context.Context, attestation hexutil.Bytes) (hexutil.Bytes, error) {
 	verification, err := nitrite.Verify(
 		attestation,
 		nitrite.VerifyOptions{
@@ -190,7 +192,7 @@ func (s *Server) EncryptedSignerKey(attestation hexutil.Bytes) (hexutil.Bytes, e
 	return ciphertext, nil
 }
 
-func (s *Server) SetSignerKey(encrypted hexutil.Bytes) error {
+func (s *Server) SetSignerKey(ctx context.Context, encrypted hexutil.Bytes) error {
 	session, err := nsm.OpenDefaultSession()
 	if err != nil {
 		return fmt.Errorf("failed to open session: %w", err)
@@ -217,6 +219,7 @@ type Proposal struct {
 }
 
 func (s *Server) ExecuteStateless(
+	ctx context.Context,
 	config *RollupConfig,
 	l1Origin *types.Header,
 	l1Receipts types.Receipts,
@@ -334,7 +337,7 @@ func (s *Server) ExecuteStateless(
 	}, nil
 }
 
-func (s *Server) Aggregate(configHash common.Hash, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
+func (s *Server) Aggregate(ctx context.Context, configHash common.Hash, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
 	outputRoot := prevOutputRoot
 	var l1OriginHash common.Hash
 	for _, p := range proposals {
