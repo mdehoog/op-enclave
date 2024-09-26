@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-batcher/batcher"
-	"github.com/urfave/cli/v2"
-
 	"github.com/ethereum-optimism/optimism/op-batcher/flags"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	thisflags "github.com/mdehoog/op-nitro/op-batcher/flags"
+	"github.com/urfave/cli/v2"
 )
 
 // Main is the entrypoint into the Batch Submitter.
@@ -27,7 +27,7 @@ func Main(version string) cliapp.LifecycleAction {
 
 		l := oplog.NewLogger(oplog.AppOut(cliCtx), cfg.LogConfig)
 		oplog.SetGlobalLogHandler(l.Handler())
-		opservice.ValidateEnvVars(flags.EnvVarPrefix, flags.Flags, l)
+		opservice.ValidateEnvVars(flags.EnvVarPrefix, thisflags.Flags, l)
 
 		l.Info("Initializing Batch Submitter")
 		return BatcherServiceFromCLIConfig(cliCtx.Context, version, cfg, l)
