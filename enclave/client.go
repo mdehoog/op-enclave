@@ -49,9 +49,9 @@ func (c *Client) SetSignerKey(ctx context.Context, encrypted hexutil.Bytes) erro
 	return c.callContext(ctx, nil, "setSignerKey", encrypted)
 }
 
-func (c *Client) ExecuteStateless(ctx context.Context, config *RollupConfig, l1Origin *types.Header, l1Receipts types.Receipts, previousBlockTxs []*types.Transaction, block *Block, witness hexutil.Bytes, messageAccount *eth.AccountResult, prevMessageAccountHash common.Hash) (*Proposal, error) {
+func (c *Client) ExecuteStateless(ctx context.Context, config *RollupConfig, l1Origin *types.Header, l1Receipts types.Receipts, previousBlockTxs types.Transactions, blockHeader *types.Header, blockTxs types.Transactions, witness hexutil.Bytes, messageAccount *eth.AccountResult, prevMessageAccountHash common.Hash) (*Proposal, error) {
 	var result Proposal
-	return &result, c.callContext(ctx, &result, "executeStateless", config, l1Origin, l1Receipts, previousBlockTxs, block, witness, messageAccount, prevMessageAccountHash)
+	return &result, c.callContext(ctx, &result, "executeStateless", config, l1Origin, l1Receipts, previousBlockTxs, blockHeader, blockTxs, witness, messageAccount, prevMessageAccountHash)
 }
 
 func (c *Client) Aggregate(ctx context.Context, configHash common.Hash, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {

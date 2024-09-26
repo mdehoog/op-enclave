@@ -223,8 +223,9 @@ func (s *Server) ExecuteStateless(
 	config *RollupConfig,
 	l1Origin *types.Header,
 	l1Receipts types.Receipts,
-	previousBlockTxs []*types.Transaction,
-	block *Block,
+	previousBlockTxs types.Transactions,
+	blockHeader *types.Header,
+	blockTxs types.Transactions,
 	witness hexutil.Bytes,
 	messageAccount *eth.AccountResult,
 	prevMessageAccountHash common.Hash,
@@ -243,7 +244,7 @@ func (s *Server) ExecuteStateless(
 
 	previousBlockHeader := w.Headers[0]
 	previousBlockHash := previousBlockHeader.Hash()
-	if block.Header().ParentHash != previousBlockHash {
+	if blockHeader.ParentHash != previousBlockHash {
 		return nil, errors.New("invalid parent hash")
 	}
 
@@ -277,12 +278,12 @@ func (s *Server) ExecuteStateless(
 		return nil, fmt.Errorf("failed to prepare payload attributes: %w", err)
 	}
 
-	if block.Transactions().Len() < len(payload.Transactions) {
+	if blockTxs.Len() < len(payload.Transactions) {
 		return nil, errors.New("invalid transaction count")
 	}
 
 	for i, payloadTx := range payload.Transactions {
-		tx := block.Transactions()[i]
+		tx := blockTxs[i]
 		if !tx.IsDepositTx() {
 			return nil, errors.New("invalid transaction type")
 		}
@@ -296,12 +297,15 @@ func (s *Server) ExecuteStateless(
 	}
 
 	// block must only contain deposit transactions if it is outside the sequencer drift
-	if block.Transactions().Len() > len(payload.Transactions) &&
-		block.Time() > l1Origin.Time+maxSequencerDriftFjord {
+	if blockTxs.Len() > len(payload.Transactions) &&
+		blockHeader.Time > l1Origin.Time+maxSequencerDriftFjord {
 		return nil, errors.New("L1 origin is too old")
 	}
 
-	stateRoot, _, err := core.ExecuteStateless(&config.ChainConfig, block.Block, w)
+	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
+		Transactions: blockTxs,
+	})
+	stateRoot, _, err := core.ExecuteStateless(&config.ChainConfig, block, w)
 
 	if messageAccount.Address.Cmp(l2ToL1MessagePasserAddress) != 0 {
 		return nil, errors.New("invalid message account address")
@@ -311,7 +315,7 @@ func (s *Server) ExecuteStateless(
 	}
 
 	prevOutputRoot := outputRootV0(previousBlockHeader, prevMessageAccountHash)
-	outputRoot := outputRootV0(block.Header(), messageAccount.StorageHash)
+	outputRoot := outputRootV0(blockHeader, messageAccount.StorageHash)
 
 	configBin, err := config.MarshalBinary()
 	if err != nil {
