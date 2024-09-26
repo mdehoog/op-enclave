@@ -248,7 +248,7 @@ func (s *Server) ExecuteStateless(
 		return nil, errors.New("invalid parent hash")
 	}
 
-	previousTxHash := types.DeriveSha(types.Transactions(previousBlockTxs), trie.NewStackTrie(nil))
+	previousTxHash := types.DeriveSha(previousBlockTxs, trie.NewStackTrie(nil))
 	if previousTxHash != previousBlockHeader.TxHash {
 		return nil, errors.New("invalid tx hash")
 	}
@@ -364,8 +364,9 @@ func (s *Server) Aggregate(ctx context.Context, configHash common.Hash, prevOutp
 	}
 
 	return &Proposal{
-		OutputRoot: outputRoot,
-		Signature:  sig,
+		OutputRoot:   outputRoot,
+		Signature:    sig,
+		L1OriginHash: l1OriginHash,
 	}, nil
 }
 
