@@ -220,7 +220,7 @@ type Proposal struct {
 
 func (s *Server) ExecuteStateless(
 	ctx context.Context,
-	config *RollupConfig,
+	cfg *PerChainConfig,
 	l1Origin *types.Header,
 	l1Receipts types.Receipts,
 	previousBlockTxs types.Transactions,
@@ -230,6 +230,8 @@ func (s *Server) ExecuteStateless(
 	messageAccount *eth.AccountResult,
 	prevMessageAccountHash common.Hash,
 ) (*Proposal, error) {
+	config := NewChainConfig(cfg)
+
 	l1OriginHash := l1Origin.Hash()
 	computed := types.DeriveSha(l1Receipts, trie.NewStackTrie(nil))
 	if computed != l1Origin.ReceiptHash {
@@ -302,10 +304,17 @@ func (s *Server) ExecuteStateless(
 		return nil, errors.New("L1 origin is too old")
 	}
 
+	expectedRoot := blockHeader.Root
 	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
 		Transactions: blockTxs,
 	})
-	stateRoot, _, err := core.ExecuteStateless(&config.ChainConfig, block, w)
+	stateRoot, _, err := core.ExecuteStateless(config.ChainConfig, block, w)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute stateless: %w", err)
+	}
+	if stateRoot != expectedRoot {
+		return nil, errors.New("invalid state root")
+	}
 
 	if messageAccount.Address.Cmp(l2ToL1MessagePasserAddress) != 0 {
 		return nil, errors.New("invalid message account address")

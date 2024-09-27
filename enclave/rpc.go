@@ -20,7 +20,7 @@ type RPC interface {
 	SetSignerKey(ctx context.Context, encrypted hexutil.Bytes) error
 	ExecuteStateless(
 		ctx context.Context,
-		config *RollupConfig,
+		config *PerChainConfig,
 		l1Origin *types.Header,
 		l1Receipts types.Receipts,
 		previousBlockTxs types.Transactions,

@@ -15,12 +15,12 @@ import (
 )
 
 type prover struct {
-	rollupConfig     *enclave.RollupConfig
-	rollupConfigHash common.Hash
-	l1               L1Client
-	l2               L2Client
-	rollup           RollupClient
-	enclave          enclave.RPC
+	config     *enclave.PerChainConfig
+	configHash common.Hash
+	l1         L1Client
+	l2         L2Client
+	rollup     RollupClient
+	enclave    enclave.RPC
 }
 
 type proposal struct {
@@ -35,30 +35,23 @@ func newProver(
 	rollup RollupClient,
 	enclav enclave.RPC,
 ) (*prover, error) {
-	chainConfig, err := l2.ChainConfig(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch chain config: %w", err)
-	}
 	rollupConfig, err := rollup.RollupConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rollup config: %w", err)
 	}
-	cfg := &enclave.RollupConfig{
-		ChainConfig: *chainConfig,
-	}
-	cfg.SetRollupConfig(rollupConfig)
-	rollupConfigHash, err := cfg.Hash()
+	cfg := enclave.FromRollupConfig(rollupConfig)
+	configHash, err := cfg.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash rollup config: %w", err)
 	}
 
 	return &prover{
-		rollupConfig:     cfg,
-		rollupConfigHash: rollupConfigHash,
-		l1:               l1,
-		l2:               l2,
-		rollup:           rollup,
-		enclave:          enclav,
+		config:     cfg,
+		configHash: configHash,
+		l1:         l1,
+		l2:         l2,
+		rollup:     rollup,
+		enclave:    enclav,
 	}, nil
 }
 
@@ -99,7 +92,7 @@ func (o *prover) Generate(ctx context.Context, blockNumber uint64) (*proposal, b
 		return fmt.Errorf("failed to fetch previous message account proof: %w", err)
 	})
 
-	blockRef, err := derive.L2BlockToBlockRef(o.rollupConfig.ToRollupConfig(), block)
+	blockRef, err := derive.L2BlockToBlockRef(o.config.ToRollupConfig(), block)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to derive block ref from L2 block: %w", err)
 	}
@@ -142,7 +135,7 @@ func (o *prover) Generate(ctx context.Context, blockNumber uint64) (*proposal, b
 
 	output, err := o.enclave.ExecuteStateless(
 		ctx,
-		o.rollupConfig,
+		o.config,
 		l1Origin.value,
 		l1Receipts.value,
 		previousBlock.value.Transactions(),
@@ -167,7 +160,7 @@ func (o *prover) Aggregate(ctx context.Context, prevOutputRoot common.Hash, prop
 	for i, p := range proposals {
 		prop[i] = p.output
 	}
-	output, err := o.enclave.Aggregate(ctx, o.rollupConfigHash, prevOutputRoot, prop)
+	output, err := o.enclave.Aggregate(ctx, o.configHash, prevOutputRoot, prop)
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate proposals: %w", err)
 	}
