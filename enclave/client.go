@@ -11,7 +11,7 @@ import (
 )
 
 type Client struct {
-	rpc.Client
+	*rpc.Client
 }
 
 var _ RPC = (*Client)(nil)

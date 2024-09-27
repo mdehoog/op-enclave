@@ -45,6 +45,13 @@ func (c *RollupConfig) ToRollupConfig() *rollup.Config {
 	}
 }
 
+func (c *RollupConfig) SetRollupConfig(cfg *rollup.Config) {
+	c.Genesis = cfg.Genesis
+	c.BlockTime = cfg.BlockTime
+	c.DepositContractAddress = cfg.DepositContractAddress
+	c.L1SystemConfigAddress = cfg.L1SystemConfigAddress
+}
+
 func (c *RollupConfig) Hash() (common.Hash, error) {
 	data, err := c.MarshalBinary()
 	if err != nil {
