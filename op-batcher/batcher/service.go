@@ -30,8 +30,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 )
 
-var ErrAlreadyStopped = errors.New("already stopped")
-
 // BatcherService represents a full batch-submitter instance and its resources,
 // and conforms to the op-service CLI Lifecycle interface.
 type BatcherService struct {
@@ -40,6 +38,7 @@ type BatcherService struct {
 	L1Client         *ethclient.Client
 	EndpointProvider dial.L2EndpointProvider
 	TxManager        txmgr.TxManager
+	AltDA            *altda.DAClient
 
 	batcher.BatcherConfig
 
@@ -79,7 +78,11 @@ func (bs *BatcherService) initFromCLIConfig(ctx context.Context, version string,
 	bs.initMetrics(cfg)
 
 	bs.PollInterval = cfg.PollInterval
+	bs.MaxPendingTransactions = cfg.MaxPendingTransactions
+	bs.MaxConcurrentDARequests = cfg.AltDA.MaxConcurrentRequests
 	bs.NetworkTimeout = cfg.TxMgrConfig.NetworkTimeout
+	bs.CheckRecentTxsDepth = cfg.CheckRecentTxsDepth
+	bs.WaitNodeSync = cfg.WaitNodeSync
 	if err := bs.initRPCClients(ctx, cfg); err != nil {
 		return err
 	}
@@ -90,9 +93,13 @@ func (bs *BatcherService) initFromCLIConfig(ctx context.Context, version string,
 		return fmt.Errorf("failed to init Tx manager: %w", err)
 	}
 	// must be init before driver and channel config
+	if err := bs.initAltDA(cfg); err != nil {
+		return fmt.Errorf("failed to init AltDA: %w", err)
+	}
 	if err := bs.initChannelConfig(cfg); err != nil {
 		return fmt.Errorf("failed to init channel config: %w", err)
 	}
+	bs.initBalanceMonitor(cfg)
 	if err := bs.initMetricsServer(cfg); err != nil {
 		return fmt.Errorf("failed to start metrics server: %w", err)
 	}
@@ -138,6 +145,13 @@ func (bs *BatcherService) initMetrics(cfg *batcher.CLIConfig) {
 		bs.Metrics = metrics.NewMetrics(procName)
 	} else {
 		bs.Metrics = metrics.NoopMetrics
+	}
+}
+
+// initBalanceMonitor depends on Metrics, L1Client and TxManager to start background-monitoring of the batcher balance.
+func (bs *BatcherService) initBalanceMonitor(cfg *batcher.CLIConfig) {
+	if cfg.MetricsConfig.Enabled {
+		bs.balanceMetricer = bs.Metrics.StartBalanceMetrics(bs.Log, bs.L1Client, bs.TxManager.From())
 	}
 }
 
@@ -241,7 +255,7 @@ func (bs *BatcherService) initChannelConfig(cfg *batcher.CLIConfig) error {
 }
 
 func (bs *BatcherService) initTxManager(cfg *batcher.CLIConfig) error {
-	txManager, err := NewTxManager(bs.Log)
+	txManager, err := txmgr.NewSimpleTxManager("batcher", bs.Log, bs.Metrics, cfg.TxMgrConfig)
 	if err != nil {
 		return err
 	}
@@ -287,15 +301,18 @@ func (bs *BatcherService) initMetricsServer(cfg *batcher.CLIConfig) error {
 
 func (bs *BatcherService) initDriver() {
 	bs.driver = batcher.NewBatchSubmitter(batcher.DriverSetup{
-		Log:               bs.Log,
-		Metr:              bs.Metrics,
-		RollupConfig:      bs.RollupConfig,
-		Config:            bs.BatcherConfig,
-		Txmgr:             bs.TxManager,
-		L1Client:          bs.L1Client,
-		EndpointProvider:  bs.EndpointProvider,
-		ChannelConfig:     bs.ChannelConfig,
+		Log:              bs.Log,
+		Metr:             bs.Metrics,
+		RollupConfig:     bs.RollupConfig,
+		Config:           bs.BatcherConfig,
+		Txmgr:            bs.TxManager,
+		L1Client:         bs.L1Client,
+		EndpointProvider: bs.EndpointProvider,
+		ChannelConfig:    bs.ChannelConfig,
+		AltDA:            bs.AltDA,
+		// vvv   this is the only diff from upstream   vvv
 		ChannelOutFactory: NewChannelOut,
+		// ^^^   this is the only diff from upstream   ^^^
 	})
 }
 
@@ -309,6 +326,7 @@ func (bs *BatcherService) initRPCServer(cfg *batcher.CLIConfig) error {
 	if cfg.RPC.EnableAdmin {
 		adminAPI := rpc.NewAdminAPI(bs.driver, bs.Metrics, bs.Log)
 		server.AddAPI(rpc.GetAdminAPI(adminAPI))
+		server.AddAPI(bs.TxManager.API())
 		bs.Log.Info("Admin RPC enabled")
 	}
 	bs.Log.Info("Starting JSON-RPC server")
@@ -316,6 +334,16 @@ func (bs *BatcherService) initRPCServer(cfg *batcher.CLIConfig) error {
 		return fmt.Errorf("unable to start RPC server: %w", err)
 	}
 	bs.rpcServer = server
+	return nil
+}
+
+func (bs *BatcherService) initAltDA(cfg *batcher.CLIConfig) error {
+	config := cfg.AltDA
+	if err := config.Check(); err != nil {
+		return err
+	}
+	bs.AltDA = config.NewDAClient()
+	bs.UseAltDA = config.Enabled
 	return nil
 }
 
@@ -347,7 +375,7 @@ func (bs *BatcherService) Kill() error {
 // If the provided ctx is cancelled, the stopping is forced, i.e. the batching work is killed non-gracefully.
 func (bs *BatcherService) Stop(ctx context.Context) error {
 	if bs.stopped.Load() {
-		return ErrAlreadyStopped
+		return batcher.ErrAlreadyStopped
 	}
 	bs.Log.Info("Stopping batcher")
 
