@@ -3,11 +3,14 @@ module github.com/mdehoog/op-nitro
 go 1.22.1
 
 require (
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/ethereum-optimism/optimism v1.9.1
 	github.com/ethereum/go-ethereum v1.14.8
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hf/nitrite v0.0.0-20211104000856-f9e0dcc73703
 	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
 	github.com/mdlayher/vsock v1.2.1
+	github.com/prometheus/client_golang v1.20.4
 	github.com/urfave/cli/v2 v2.27.4
 )
 
@@ -55,13 +58,13 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-bexpr v0.1.11 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/holiman/billy v0.0.0-20240216141850-2abb0c79d3c4 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -76,7 +79,6 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
