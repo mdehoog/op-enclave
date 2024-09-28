@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { OwnableImmutable } from "./OwnableImmutable.sol";
+import { OwnableConfig } from "./OwnableConfig.sol";
+import { OwnerConfig } from "./OwnerConfig.sol";
 import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
 import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
@@ -15,7 +16,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /// @notice The SystemConfig contract is used to manage configuration of an Optimism network.
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
 ///         the L2 chain.
-contract SystemConfigOwnable is OwnableImmutable, ISemver, IGasToken {
+contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
     /// @notice Version identifier, used for upgrades.
     uint256 public constant VERSION = 0;
 
@@ -109,7 +110,7 @@ contract SystemConfigOwnable is OwnableImmutable, ISemver, IGasToken {
     ///         implementation, so set it to `address(0xdEaD)`
     /// @dev    START_BLOCK_SLOT is set to type(uint256).max here so that it will be a dead value
     ///         in the singleton and is skipped by initialize when setting the start block.
-    constructor(address _owner) OwnableImmutable(_owner) {
+    constructor(OwnerConfig _ownerConfig) OwnableConfig(_ownerConfig) {
         Storage.setUint(START_BLOCK_SLOT, type(uint256).max);
         initialize({
             _basefeeScalar: 0,

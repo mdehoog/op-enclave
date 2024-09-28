@@ -6,6 +6,7 @@ import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { SystemConfigGlobal } from "./SystemConfigGlobal.sol";
 
 /// @custom:proxied
 /// @title OutputOracle
@@ -20,24 +21,20 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 ///          - Additional signature validation for proposeL2Output
 ///          - Allow outputs to be proposed at any time
 contract OutputOracle is Initializable, ISemver {
-    /// @notice An array of L2 output proposals.
-    Types.OutputProposal[] internal l2Outputs;
-
-    /// @notice The address of the proposer. Can be updated via upgrade.
-    /// @custom:network-specific
-    address public immutable proposer;
+    /// @notice Global system config.
+    SystemConfigGlobal public immutable systemConfigGlobal;
 
     /// @notice Maximum number of outputs to store in l2Outputs.
     uint256 public immutable maxOutputCount;
+
+    /// @notice An array of L2 output proposals.
+    Types.OutputProposal[] internal l2Outputs;
 
     /// @notice Pointer inside l2Outputs to the latest submitted output.
     uint256 public latestOutputIndex;
 
     /// @notice Hash of the serialized chain configuration.
-    bytes32 private configHash;
-
-    /// @notice Mapping of valid signers attested from AWS Nitro.
-    mapping(address => bool) public validSigners;
+    bytes32 public configHash;
 
     /// @notice Emitted when an output is proposed.
     /// @param outputRoot    The output root.
@@ -52,15 +49,15 @@ contract OutputOracle is Initializable, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @notice Constructs the L3OutputOracle contract. Initializes variables to the same values as
+    /// @notice Constructs the OutputOracle contract. Initializes variables to the same values as
     ///         in the getting-started config.
-    /// @param _proposer            The address of the proposer.
+    /// @param _systemConfigGlobal  The global system config contract.
     /// @param _maxOutputCount      The maximum number of outputs stored by this contract.
     constructor(
-        address _proposer,
+        SystemConfigGlobal _systemConfigGlobal,
         uint256 _maxOutputCount
     ) {
-        proposer = _proposer;
+        systemConfigGlobal = _systemConfigGlobal;
         maxOutputCount = _maxOutputCount;
         initialize(0);
     }
@@ -71,8 +68,8 @@ contract OutputOracle is Initializable, ISemver {
         latestOutputIndex = maxOutputCount-1;
     }
 
-    function registerSigner(bytes calldata attestation) external {
-        // TODO validate AWS attestation, check PCR0, then add public key to mapping of valid signers
+    function proposer() public view returns (address) {
+        return systemConfigGlobal.proposer();
     }
 
     /// @notice Accepts an outputRoot of the corresponding L2 block.
@@ -87,7 +84,7 @@ contract OutputOracle is Initializable, ISemver {
         external
         payable
     {
-        require(msg.sender == proposer, "OutputOracle: only the proposer address can propose new outputs");
+        require(msg.sender == proposer(), "OutputOracle: only the proposer address can propose new outputs");
 
         require(
             _l2BlockNumber > latestBlockNumber(),
@@ -101,7 +98,7 @@ contract OutputOracle is Initializable, ISemver {
             keccak256(abi.encodePacked(configHash, blockhash(_l1BlockNumber), previousOutputRoot, _outputRoot)),
             _signature
         );
-        require(validSigners[signer], "OutputOracle: invalid signature");
+        require(systemConfigGlobal.validSigners(signer), "OutputOracle: invalid signature");
 
         latestOutputIndex = nextOutputIndex();
         emit OutputProposed(_outputRoot, latestOutputIndex, _l2BlockNumber, block.timestamp);

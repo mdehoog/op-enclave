@@ -11,7 +11,10 @@ import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol"
 import { L2OutputOracle } from "@eth-optimism-bedrock/src/L1/L2OutputOracle.sol";
 import { Portal } from "src/Portal.sol";
 import { OutputOracle } from "src/OutputOracle.sol";
+import { OwnerConfig } from "src/OwnerConfig.sol";
 import { SystemConfigOwnable } from "src/SystemConfigOwnable.sol";
+import { SystemConfigGlobal } from "src/SystemConfigGlobal.sol";
+import { DeployChain } from "src/DeployChain.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
 
@@ -26,6 +29,8 @@ contract DeploySystem is Deploy {
         console.log("set up superchain!");
         setupOpChain2();
         console.log("set up op chain!");
+        setupChainDeploy();
+        console.log("set chain deploy!");
     }
 
     function setupSuperchain2() public {
@@ -63,16 +68,22 @@ contract DeploySystem is Deploy {
         initializeImplementations2();
     }
 
+    function setupChainDeploy() public {
+        console.log("Setting up Chain Deploy");
+
+        deployDeployChain();
+    }
+
     function deployProxies2() public {
         console.log("Deploying proxies");
 
         deployERC1967Proxy("OptimismPortalProxy");
         deployERC1967Proxy("SystemConfigProxy");
+        deployERC1967Proxy("SystemConfigGlobalProxy");
         deployL1StandardBridgeProxy();
         deployL1CrossDomainMessengerProxy();
         deployERC1967Proxy("OptimismMintableERC20FactoryProxy");
         deployERC1967Proxy("L1ERC721BridgeProxy");
-
         deployERC1967Proxy("L2OutputOracleProxy");
 
         transferAddressManagerOwnership(); // to the ProxyAdmin
@@ -88,6 +99,7 @@ contract DeploySystem is Deploy {
         deployL1CrossDomainMessenger();
         deployOptimismMintableERC20Factory();
         deploySystemConfigOwnable();
+        deploySystemConfigGlobal();
         deployL1StandardBridge();
         deployL1ERC721Bridge();
         deployPortal();
@@ -98,6 +110,7 @@ contract DeploySystem is Deploy {
         console.log("Initializing implementations");
         initializePortal();
         initializeSystemConfigOwnable();
+        initializeSystemConfigGlobal();
         initializeL1StandardBridge();
         initializeL1ERC721Bridge();
         initializeOptimismMintableERC20Factory();
@@ -106,8 +119,11 @@ contract DeploySystem is Deploy {
     }
 
     function deploySystemConfigOwnable() public broadcast returns (address addr_) {
+        console.log("Deploying OwnerConfig");
+        OwnerConfig ownerConfig = new OwnerConfig{ salt: _implSalt() }(cfg.finalSystemOwner());
+
         console.log("Deploying SystemConfig implementation");
-        addr_ = address(new SystemConfigOwnable{ salt: _implSalt() }(cfg.finalSystemOwner()));
+        addr_ = address(new SystemConfigOwnable{ salt: _implSalt() }(ownerConfig));
         save("SystemConfig", addr_);
         console.log("SystemConfig deployed at %s", addr_);
 
@@ -117,6 +133,13 @@ contract DeploySystem is Deploy {
         Types.ContractSet memory contracts = _proxiesUnstrict();
         contracts.SystemConfig = addr_;
         checkSystemConfig({ _contracts: contracts, _cfg: cfg, _isProxy: false });
+    }
+
+    function deploySystemConfigGlobal() public broadcast returns (address addr_) {
+        console.log("Deploying SystemConfigGlobal implementation");
+        addr_ = address(new SystemConfigGlobal{ salt: _implSalt() }());
+        save("SystemConfigGlobal", addr_);
+        console.log("SystemConfigGlobal deployed at %s", addr_);
     }
 
     function deployPortal() public broadcast returns (address addr_) {
@@ -134,9 +157,11 @@ contract DeploySystem is Deploy {
     }
 
     function deployOutputOracle() public broadcast returns (address addr_) {
+        SystemConfigGlobal systemConfigGlobal = SystemConfigGlobal(mustGetAddress("SystemConfigGlobal"));
+
         console.log("Deploying L2OutputOracle implementation");
         OutputOracle oracle = new OutputOracle{ salt: _implSalt() }(
-            cfg.l2OutputOracleProposer(),
+            systemConfigGlobal,
             1000 // TODO move to config
         );
 
@@ -155,6 +180,26 @@ contract DeploySystem is Deploy {
         });
 
         addr_ = address(oracle);
+    }
+
+    function deployDeployChain() public broadcast returns (address addr_) {
+        console.log("Deploying DeployChain implementation");
+        DeployChain deployChain = new DeployChain{ salt: _implSalt() }({
+            _proxyAdmin: mustGetAddress("ProxyAdmin"),
+            _portal: mustGetAddress("OptimismPortalProxy"),
+            _systemConfig: mustGetAddress("SystemConfigProxy"),
+            _l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
+            _l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
+            _optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
+            _l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
+            _outputOracle: mustGetAddress("L2OutputOracleProxy"),
+            _superchainConfig: mustGetAddress("SuperchainConfigProxy")
+        });
+
+        save("DeployChain", address(deployChain));
+        console.log("DeployChain deployed at %s", address(deployChain));
+
+        addr_ = address(deployChain);
     }
 
     function initializeSystemConfigOwnable() public broadcast {
@@ -197,6 +242,22 @@ contract DeploySystem is Deploy {
         checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
+    function initializeSystemConfigGlobal() public broadcast {
+        console.log("Upgrading and initializing SystemConfigGlobal proxy");
+        address systemConfigGlobalProxy = mustGetAddress("SystemConfigGlobalProxy");
+        address systemConfigGlobal = mustGetAddress("SystemConfigGlobal");
+
+        _upgradeAndCallViaSafe({
+            _proxy: payable(systemConfigGlobalProxy),
+            _implementation: systemConfigGlobal,
+            _innerCallData: abi.encodeWithSelector(SystemConfigGlobal.initialize.selector, cfg.finalSystemOwner())
+        });
+
+        SystemConfigGlobal config = SystemConfigGlobal(systemConfigGlobalProxy);
+        string memory version = config.version();
+        console.log("SystemConfigGlobal version: %s", version);
+    }
+
     function initializePortal() public broadcast {
         console.log("Upgrading and initializing OptimismPortal proxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
@@ -226,7 +287,7 @@ contract DeploySystem is Deploy {
     }
 
     function initializeOutputOracle() public broadcast {
-        console.log("Upgrading and initializing L2OutputOracle proxy");
+        console.log("Upgrading and initializing OutputOracle proxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address l2OutputOracle = mustGetAddress("L2OutputOracle");
 

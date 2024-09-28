@@ -7,6 +7,7 @@ libs = ["lib"]
 
 viaIR = true
 ffi = true
+evm_version = "shanghai"
 fs_permissions = [
     { access='read', path='./deploy-config/' },
     { access='read-write', path='./deployments/' }
