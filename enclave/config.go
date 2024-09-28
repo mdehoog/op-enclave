@@ -88,14 +88,6 @@ func FromRollupConfig(cfg *rollup.Config) *PerChainConfig {
 	return p
 }
 
-func (p *PerChainConfig) ForceDefaults() {
-	p.BlockTime = 1
-	p.Genesis.L2.Number = 0
-	p.Genesis.SystemConfig.GasLimit = uint64(deployConfig.L2GenesisBlockGasLimit)
-	p.Genesis.SystemConfig.Overhead = eth.Bytes32{}
-	p.Genesis.SystemConfig.Scalar = deployConfig.FeeScalar()
-}
-
 func (p *PerChainConfig) ToRollupConfig() *rollup.Config {
 	return &rollup.Config{
 		L2ChainID:              p.ChainID,
@@ -104,6 +96,14 @@ func (p *PerChainConfig) ToRollupConfig() *rollup.Config {
 		DepositContractAddress: p.DepositContractAddress,
 		L1SystemConfigAddress:  p.L1SystemConfigAddress,
 	}
+}
+
+func (p *PerChainConfig) ForceDefaults() {
+	p.BlockTime = 1
+	p.Genesis.L2.Number = 0
+	p.Genesis.SystemConfig.GasLimit = uint64(deployConfig.L2GenesisBlockGasLimit)
+	p.Genesis.SystemConfig.Overhead = eth.Bytes32{}
+	p.Genesis.SystemConfig.Scalar = deployConfig.FeeScalar()
 }
 
 func (p *PerChainConfig) Hash() (common.Hash, error) {
