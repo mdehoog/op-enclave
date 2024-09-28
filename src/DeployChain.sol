@@ -25,6 +25,16 @@ contract DeployChain {
         address l1SystemConfigAddress;
     }
 
+    struct Deploy {
+        address l2OutputOracle;
+        address systemConfig;
+        address optimismPortal;
+        address l1CrossDomainMessenger;
+        address l1StandardBridge;
+        address l1ERC721Bridge;
+        address optimismMintableERC20Factory;
+    }
+
     address public immutable proxyAdmin;
     address public immutable portal;
     address public immutable systemConfig;
@@ -73,7 +83,7 @@ contract DeployChain {
         require(instance != address(0), "Proxy: create2 failed");
     }
 
-    function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) external {
+    function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) external returns (Deploy memory) {
         address _outputOracle = setupProxy(outputOracle, salt);
         address _systemConfig = setupProxy(systemConfig, salt);
         address _portal = setupProxy(portal, salt);
@@ -150,5 +160,15 @@ contract DeployChain {
         OptimismMintableERC20Factory(_optimismMintableERC20Factory).initialize(
             _l1StandardBridge
         );
+
+        return Deploy({
+            l2OutputOracle: _outputOracle,
+            systemConfig: _systemConfig,
+            optimismPortal: _portal,
+            l1CrossDomainMessenger: _l1CrossDomainMessenger,
+            l1StandardBridge: _l1StandardBridge,
+            l1ERC721Bridge: _l1ERC721Bridge,
+            optimismMintableERC20Factory: _optimismMintableERC20Factory
+        });
     }
 }
