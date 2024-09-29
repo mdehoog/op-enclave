@@ -187,7 +187,7 @@ contract DeployChain {
         require(instance != address(0), "Proxy: create2 failed");
     }
 
-    function calculateBatchInbox(uint256 chainID) internal returns (address) {
+    function calculateBatchInbox(uint256 chainID) internal pure returns (address) {
         uint256 inbox = 0;
         for (; chainID > 0; chainID /= 10) {
             inbox = (inbox << 4) | (chainID % 10);

@@ -30,6 +30,9 @@ var (
 
 // DeployChainDeploy is an auto generated low-level Go binding around an user-defined struct.
 type DeployChainDeploy struct {
+	L1Number                     uint64
+	L1Hash                       [32]byte
+	L2Time                       uint64
 	L2OutputOracle               common.Address
 	SystemConfig                 common.Address
 	OptimismPortal               common.Address
@@ -41,7 +44,7 @@ type DeployChainDeploy struct {
 
 // DeployChainMetaData contains all meta data concerning the DeployChain contract.
 var DeployChainMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_proxyAdmin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_portal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_outputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_superchainConfig\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"genesisHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structDeployChain.Deploy\",\"components\":[{\"name\":\"l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"}]}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"l1CrossDomainMessenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1ERC721Bridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1StandardBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"optimismMintableERC20Factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"outputOracle\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"portal\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proxyAdmin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"superchainConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"systemConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_proxyAdmin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_portal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_outputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_superchainConfig\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"MESSAGE_PASSER_STORAGE_HASH\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"genesisL2Hash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"genesisL2StateRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"batcherAddress\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"basefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"blobbasefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"gasLimit\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"unsafeBlockSigner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structDeployChain.Deploy\",\"components\":[{\"name\":\"l1Number\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"l1Hash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"l2Time\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"}]}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"l1CrossDomainMessenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1ERC721Bridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1StandardBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"optimismMintableERC20Factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"outputOracle\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"portal\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proxyAdmin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"superchainConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"systemConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"}]",
 }
 
 // DeployChainABI is the input ABI used to generate the binding from.
@@ -188,6 +191,37 @@ func (_DeployChain *DeployChainTransactorRaw) Transfer(opts *bind.TransactOpts) 
 // Transact invokes the (paid) contract method with params as input values.
 func (_DeployChain *DeployChainTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _DeployChain.Contract.contract.Transact(opts, method, params...)
+}
+
+// MESSAGEPASSERSTORAGEHASH is a free data retrieval call binding the contract method 0xaabcb26e.
+//
+// Solidity: function MESSAGE_PASSER_STORAGE_HASH() view returns(bytes32)
+func (_DeployChain *DeployChainCaller) MESSAGEPASSERSTORAGEHASH(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _DeployChain.contract.Call(opts, &out, "MESSAGE_PASSER_STORAGE_HASH")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// MESSAGEPASSERSTORAGEHASH is a free data retrieval call binding the contract method 0xaabcb26e.
+//
+// Solidity: function MESSAGE_PASSER_STORAGE_HASH() view returns(bytes32)
+func (_DeployChain *DeployChainSession) MESSAGEPASSERSTORAGEHASH() ([32]byte, error) {
+	return _DeployChain.Contract.MESSAGEPASSERSTORAGEHASH(&_DeployChain.CallOpts)
+}
+
+// MESSAGEPASSERSTORAGEHASH is a free data retrieval call binding the contract method 0xaabcb26e.
+//
+// Solidity: function MESSAGE_PASSER_STORAGE_HASH() view returns(bytes32)
+func (_DeployChain *DeployChainCallerSession) MESSAGEPASSERSTORAGEHASH() ([32]byte, error) {
+	return _DeployChain.Contract.MESSAGEPASSERSTORAGEHASH(&_DeployChain.CallOpts)
 }
 
 // L1CrossDomainMessenger is a free data retrieval call binding the contract method 0xa7119869.
@@ -469,23 +503,23 @@ func (_DeployChain *DeployChainCallerSession) SystemConfig() (common.Address, er
 	return _DeployChain.Contract.SystemConfig(&_DeployChain.CallOpts)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0xb6a944da.
+// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) returns((address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainTransactor) Deploy(opts *bind.TransactOpts, salt [32]byte, chainID *big.Int, genesisHash [32]byte) (*types.Transaction, error) {
-	return _DeployChain.contract.Transact(opts, "deploy", salt, chainID, genesisHash)
+// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainTransactor) Deploy(opts *bind.TransactOpts, salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.contract.Transact(opts, "deploy", salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0xb6a944da.
+// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) returns((address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainSession) Deploy(salt [32]byte, chainID *big.Int, genesisHash [32]byte) (*types.Transaction, error) {
-	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisHash)
+// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainSession) Deploy(salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0xb6a944da.
+// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) returns((address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainTransactorSession) Deploy(salt [32]byte, chainID *big.Int, genesisHash [32]byte) (*types.Transaction, error) {
-	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisHash)
+// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainTransactorSession) Deploy(salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
 }
