@@ -6,10 +6,10 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/mdehoog/op-nitro/op-da/da"
+	"github.com/mdehoog/op-nitro/op-da/flags"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-proposer/flags"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
