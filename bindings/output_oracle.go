@@ -37,7 +37,7 @@ type TypesOutputProposal struct {
 
 // OutputOracleMetaData contains all meta data concerning the OutputOracle contract.
 var OutputOracleMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_proposer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_maxOutputCount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getL2Output\",\"inputs\":[{\"name\":\"_l2OutputIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getL2OutputAfter\",\"inputs\":[{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getL2OutputIndexAfter\",\"inputs\":[{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"_configHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"latestBlockNumber\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"latestL2Output\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"latestOutputIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"maxOutputCount\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nextOutputIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proposeL2Output\",\"inputs\":[{\"name\":\"_outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_l1BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"proposer\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"registerSigner\",\"inputs\":[{\"name\":\"attestation\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"validSigners\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OutputProposed\",\"inputs\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"l2OutputIndex\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"l1Timestamp\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_systemConfigGlobal\",\"type\":\"address\",\"internalType\":\"contractSystemConfigGlobal\"},{\"name\":\"_maxOutputCount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"configHash\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getL2Output\",\"inputs\":[{\"name\":\"_l2OutputIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getL2OutputAfter\",\"inputs\":[{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getL2OutputIndexAfter\",\"inputs\":[{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"_configHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"latestBlockNumber\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"latestL2Output\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structTypes.OutputProposal\",\"components\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"timestamp\",\"type\":\"uint128\",\"internalType\":\"uint128\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint128\",\"internalType\":\"uint128\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"latestOutputIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"maxOutputCount\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nextOutputIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proposeL2Output\",\"inputs\":[{\"name\":\"_outputRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_l2BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_l1BlockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"proposer\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"systemConfigGlobal\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractSystemConfigGlobal\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OutputProposed\",\"inputs\":[{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"l2OutputIndex\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"l2BlockNumber\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"l1Timestamp\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false}]",
 }
 
 // OutputOracleABI is the input ABI used to generate the binding from.
@@ -184,6 +184,37 @@ func (_OutputOracle *OutputOracleTransactorRaw) Transfer(opts *bind.TransactOpts
 // Transact invokes the (paid) contract method with params as input values.
 func (_OutputOracle *OutputOracleTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _OutputOracle.Contract.contract.Transact(opts, method, params...)
+}
+
+// ConfigHash is a free data retrieval call binding the contract method 0xe1f1176d.
+//
+// Solidity: function configHash() view returns(bytes32)
+func (_OutputOracle *OutputOracleCaller) ConfigHash(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _OutputOracle.contract.Call(opts, &out, "configHash")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// ConfigHash is a free data retrieval call binding the contract method 0xe1f1176d.
+//
+// Solidity: function configHash() view returns(bytes32)
+func (_OutputOracle *OutputOracleSession) ConfigHash() ([32]byte, error) {
+	return _OutputOracle.Contract.ConfigHash(&_OutputOracle.CallOpts)
+}
+
+// ConfigHash is a free data retrieval call binding the contract method 0xe1f1176d.
+//
+// Solidity: function configHash() view returns(bytes32)
+func (_OutputOracle *OutputOracleCallerSession) ConfigHash() ([32]byte, error) {
+	return _OutputOracle.Contract.ConfigHash(&_OutputOracle.CallOpts)
 }
 
 // GetL2Output is a free data retrieval call binding the contract method 0xa25ae557.
@@ -465,35 +496,35 @@ func (_OutputOracle *OutputOracleCallerSession) Proposer() (common.Address, erro
 	return _OutputOracle.Contract.Proposer(&_OutputOracle.CallOpts)
 }
 
-// ValidSigners is a free data retrieval call binding the contract method 0x6a73b00b.
+// SystemConfigGlobal is a free data retrieval call binding the contract method 0xcd92b3fe.
 //
-// Solidity: function validSigners(address ) view returns(bool)
-func (_OutputOracle *OutputOracleCaller) ValidSigners(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
+// Solidity: function systemConfigGlobal() view returns(address)
+func (_OutputOracle *OutputOracleCaller) SystemConfigGlobal(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _OutputOracle.contract.Call(opts, &out, "validSigners", arg0)
+	err := _OutputOracle.contract.Call(opts, &out, "systemConfigGlobal")
 
 	if err != nil {
-		return *new(bool), err
+		return *new(common.Address), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
 
 	return out0, err
 
 }
 
-// ValidSigners is a free data retrieval call binding the contract method 0x6a73b00b.
+// SystemConfigGlobal is a free data retrieval call binding the contract method 0xcd92b3fe.
 //
-// Solidity: function validSigners(address ) view returns(bool)
-func (_OutputOracle *OutputOracleSession) ValidSigners(arg0 common.Address) (bool, error) {
-	return _OutputOracle.Contract.ValidSigners(&_OutputOracle.CallOpts, arg0)
+// Solidity: function systemConfigGlobal() view returns(address)
+func (_OutputOracle *OutputOracleSession) SystemConfigGlobal() (common.Address, error) {
+	return _OutputOracle.Contract.SystemConfigGlobal(&_OutputOracle.CallOpts)
 }
 
-// ValidSigners is a free data retrieval call binding the contract method 0x6a73b00b.
+// SystemConfigGlobal is a free data retrieval call binding the contract method 0xcd92b3fe.
 //
-// Solidity: function validSigners(address ) view returns(bool)
-func (_OutputOracle *OutputOracleCallerSession) ValidSigners(arg0 common.Address) (bool, error) {
-	return _OutputOracle.Contract.ValidSigners(&_OutputOracle.CallOpts, arg0)
+// Solidity: function systemConfigGlobal() view returns(address)
+func (_OutputOracle *OutputOracleCallerSession) SystemConfigGlobal() (common.Address, error) {
+	return _OutputOracle.Contract.SystemConfigGlobal(&_OutputOracle.CallOpts)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
@@ -567,27 +598,6 @@ func (_OutputOracle *OutputOracleSession) ProposeL2Output(_outputRoot [32]byte, 
 // Solidity: function proposeL2Output(bytes32 _outputRoot, uint256 _l2BlockNumber, uint256 _l1BlockNumber, bytes _signature) payable returns()
 func (_OutputOracle *OutputOracleTransactorSession) ProposeL2Output(_outputRoot [32]byte, _l2BlockNumber *big.Int, _l1BlockNumber *big.Int, _signature []byte) (*types.Transaction, error) {
 	return _OutputOracle.Contract.ProposeL2Output(&_OutputOracle.TransactOpts, _outputRoot, _l2BlockNumber, _l1BlockNumber, _signature)
-}
-
-// RegisterSigner is a paid mutator transaction binding the contract method 0x3c37b365.
-//
-// Solidity: function registerSigner(bytes attestation) returns()
-func (_OutputOracle *OutputOracleTransactor) RegisterSigner(opts *bind.TransactOpts, attestation []byte) (*types.Transaction, error) {
-	return _OutputOracle.contract.Transact(opts, "registerSigner", attestation)
-}
-
-// RegisterSigner is a paid mutator transaction binding the contract method 0x3c37b365.
-//
-// Solidity: function registerSigner(bytes attestation) returns()
-func (_OutputOracle *OutputOracleSession) RegisterSigner(attestation []byte) (*types.Transaction, error) {
-	return _OutputOracle.Contract.RegisterSigner(&_OutputOracle.TransactOpts, attestation)
-}
-
-// RegisterSigner is a paid mutator transaction binding the contract method 0x3c37b365.
-//
-// Solidity: function registerSigner(bytes attestation) returns()
-func (_OutputOracle *OutputOracleTransactorSession) RegisterSigner(attestation []byte) (*types.Transaction, error) {
-	return _OutputOracle.Contract.RegisterSigner(&_OutputOracle.TransactOpts, attestation)
 }
 
 // OutputOracleInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the OutputOracle contract.
