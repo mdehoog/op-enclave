@@ -101,9 +101,7 @@ func (p *PerChainConfig) ToRollupConfig() *rollup.Config {
 func (p *PerChainConfig) ForceDefaults() {
 	p.BlockTime = 1
 	p.Genesis.L2.Number = 0
-	p.Genesis.SystemConfig.GasLimit = uint64(deployConfig.L2GenesisBlockGasLimit)
 	p.Genesis.SystemConfig.Overhead = eth.Bytes32{}
-	p.Genesis.SystemConfig.Scalar = deployConfig.FeeScalar()
 }
 
 func (p *PerChainConfig) Hash() (common.Hash, error) {
@@ -122,6 +120,9 @@ func (p *PerChainConfig) MarshalBinary() (data []byte, err error) {
 		{Name: "genesisL1Number", Type: uint64Type},
 		{Name: "genesisL2Hash", Type: bytes32Type},
 		{Name: "genesisL2Time", Type: uint64Type},
+		{Name: "genesisBatcherAddress", Type: addressType},
+		{Name: "genesisScalar", Type: bytes32Type},
+		{Name: "genesisGasLimit", Type: uint64Type},
 		{Name: "depositContractAddress", Type: addressType},
 		{Name: "l1SystemConfigAddress", Type: addressType},
 	}
@@ -132,6 +133,9 @@ func (p *PerChainConfig) MarshalBinary() (data []byte, err error) {
 		p.Genesis.L1.Number,
 		p.Genesis.L2.Hash,
 		p.Genesis.L2Time,
+		p.Genesis.SystemConfig.BatcherAddr,
+		p.Genesis.SystemConfig.Scalar,
+		p.Genesis.SystemConfig.GasLimit,
 		p.DepositContractAddress,
 		p.L1SystemConfigAddress,
 	)

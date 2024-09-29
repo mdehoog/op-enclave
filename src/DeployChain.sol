@@ -13,19 +13,15 @@ import { L1CrossDomainMessenger } from "@eth-optimism-bedrock/src/L1/L1CrossDoma
 import { L1ERC721Bridge } from "@eth-optimism-bedrock/src/L1/L1ERC721Bridge.sol";
 import { OptimismMintableERC20Factory } from "@eth-optimism-bedrock/src/universal/OptimismMintableERC20Factory.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
+import { Hashing } from "@eth-optimism-bedrock/src/libraries/Hashing.sol";
+import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
+import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 
 contract DeployChain {
-    struct PerChainConfig {
-        uint256 chainID;
-        bytes32 genesisL1Hash;
-        uint64 genesisL1Number;
-        bytes32 genesisL2Hash;
-        uint64 genesisL2Time;
-        address depositContractAddress;
-        address l1SystemConfigAddress;
-    }
-
     struct Deploy {
+        uint64 l1Number;
+        bytes32 l1Hash;
+        uint64 l2Time;
         address l2OutputOracle;
         address systemConfig;
         address optimismPortal;
@@ -34,6 +30,8 @@ contract DeployChain {
         address l1ERC721Bridge;
         address optimismMintableERC20Factory;
     }
+
+    bytes32 public constant MESSAGE_PASSER_STORAGE_HASH = 0x8ed4baae3a927be3dea54996b4d5899f8c01e7594bf50b17dc1e741388ce3d12;
 
     address public immutable proxyAdmin;
     address public immutable portal;
@@ -67,23 +65,17 @@ contract DeployChain {
         superchainConfig = _superchainConfig;
     }
 
-    function setupProxy(address proxy, bytes32 salt) internal returns (address instance) {
-        address _proxyAdmin = proxyAdmin;
-        /// @solidity memory-safe-assembly
-        assembly {
-            let ptr := mload(0x40)
-            mstore(ptr, 0x60678060095f395ff363204e1c7a60e01b5f5273000000000000000000000000)
-            mstore(add(ptr, 0x14), shl(0x60, proxy))
-            mstore(add(ptr, 0x28), 0x6004525f5f60245f730000000000000000000000000000000000000000000000)
-            mstore(add(ptr, 0x31), shl(0x60, _proxyAdmin))
-            mstore(add(ptr, 0x45), 0x5afa3d5f5f3e3d60201416604d573d5ffd5b5f5f365f5f51365f5f375af43d5f)
-            mstore(add(ptr, 0x65), 0x5f3e5f3d91606557fd5bf3000000000000000000000000000000000000000000)
-            instance := create2(0, ptr, 0x70, salt)
-        }
-        require(instance != address(0), "Proxy: create2 failed");
-    }
-
-    function deploy(bytes32 salt, uint256 chainID, bytes32 genesisHash) external returns (Deploy memory) {
+    function deploy(
+        bytes32 salt,
+        uint256 chainID,
+        bytes32 genesisL2Hash,
+        bytes32 genesisL2StateRoot,
+        address batcherAddress,
+        uint32 basefeeScalar,
+        uint32 blobbasefeeScalar,
+        uint64 gasLimit,
+        address unsafeBlockSigner
+    ) external returns (Deploy memory) {
         address _outputOracle = setupProxy(outputOracle, salt);
         address _systemConfig = setupProxy(systemConfig, salt);
         address _portal = setupProxy(portal, salt);
@@ -92,37 +84,41 @@ contract DeployChain {
         address _l1ERC721Bridge = setupProxy(l1ERC721Bridge, salt);
         address _optimismMintableERC20Factory = setupProxy(optimismMintableERC20Factory, salt);
 
-        PerChainConfig memory config = PerChainConfig({
-            chainID: chainID,
-            genesisL1Hash: blockhash(block.number-1),
-            genesisL1Number: uint64(block.number-1),
-            genesisL2Hash: genesisHash,
-            genesisL2Time: uint64(block.timestamp-2),
-            depositContractAddress: _portal,
-            l1SystemConfigAddress: _systemConfig
-        });
+        bytes32 scalar = bytes32((uint256(0x01) << 248) | (uint256(blobbasefeeScalar) << 32) | basefeeScalar);
+        uint64 genesisL1Number = uint64(block.number - 1);
+        bytes32 genesisL1Hash = blockhash(uint256(genesisL1Number));
+        uint64 genesisL2Time = uint64(block.timestamp - 2);
         bytes32 configHash = keccak256(abi.encodePacked(
             uint64(0), // version
-            config.chainID,
-            config.genesisL1Hash,
-            config.genesisL1Number,
-            config.genesisL2Hash,
-            config.genesisL2Time,
-            config.depositContractAddress,
-            config.l1SystemConfigAddress
+            chainID,
+            genesisL1Hash,
+            genesisL1Number,
+            genesisL2Hash,
+            genesisL2Time,
+            batcherAddress,
+            scalar,
+            gasLimit,
+            _portal,
+            _systemConfig
         ));
 
-        OutputOracle(_outputOracle).initialize(configHash);
+        bytes32 genesisOutputRoot = Hashing.hashOutputRootProof(Types.OutputRootProof({
+            version: 0,
+            stateRoot: genesisL2StateRoot,
+            messagePasserStorageRoot: MESSAGE_PASSER_STORAGE_HASH,
+            latestBlockhash: genesisL2Hash
+        }));
 
-        SystemConfigOwnable _configTemplate = SystemConfigOwnable(systemConfig);
+        OutputOracle(_outputOracle).initialize(configHash, genesisOutputRoot);
+
         SystemConfigOwnable(_systemConfig).initialize({
-            _basefeeScalar: _configTemplate.basefeeScalar(),
-            _blobbasefeeScalar: _configTemplate.blobbasefeeScalar(),
-            _batcherHash: _configTemplate.batcherHash(),
-            _gasLimit: _configTemplate.gasLimit(),
-            _unsafeBlockSigner: _configTemplate.unsafeBlockSigner(),
-            _config: _configTemplate.resourceConfig(),
-            _batchInbox: _configTemplate.batchInbox(),
+            _basefeeScalar: basefeeScalar,
+            _blobbasefeeScalar: blobbasefeeScalar,
+            _batcherHash: bytes32(uint256(uint160(batcherAddress))),
+            _gasLimit: gasLimit,
+            _unsafeBlockSigner: unsafeBlockSigner,
+            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
+            _batchInbox: calculateBatchInbox(chainID),
             _addresses: SystemConfig.Addresses({
                 l1CrossDomainMessenger: _l1CrossDomainMessenger,
                 l1ERC721Bridge: _l1ERC721Bridge,
@@ -162,6 +158,9 @@ contract DeployChain {
         );
 
         return Deploy({
+            l1Number: genesisL1Number,
+            l1Hash: genesisL1Hash,
+            l2Time: genesisL2Time,
             l2OutputOracle: _outputOracle,
             systemConfig: _systemConfig,
             optimismPortal: _portal,
@@ -170,5 +169,29 @@ contract DeployChain {
             l1ERC721Bridge: _l1ERC721Bridge,
             optimismMintableERC20Factory: _optimismMintableERC20Factory
         });
+    }
+
+    function setupProxy(address proxy, bytes32 salt) internal returns (address instance) {
+        address _proxyAdmin = proxyAdmin;
+        /// @solidity memory-safe-assembly
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, 0x60678060095f395ff363204e1c7a60e01b5f5273000000000000000000000000)
+            mstore(add(ptr, 0x14), shl(0x60, proxy))
+            mstore(add(ptr, 0x28), 0x6004525f5f60245f730000000000000000000000000000000000000000000000)
+            mstore(add(ptr, 0x31), shl(0x60, _proxyAdmin))
+            mstore(add(ptr, 0x45), 0x5afa3d5f5f3e3d60201416604d573d5ffd5b5f5f365f5f51365f5f375af43d5f)
+            mstore(add(ptr, 0x65), 0x5f3e5f3d91606557fd5bf3000000000000000000000000000000000000000000)
+            instance := create2(0, ptr, 0x70, salt)
+        }
+        require(instance != address(0), "Proxy: create2 failed");
+    }
+
+    function calculateBatchInbox(uint256 chainID) internal returns (address) {
+        uint256 inbox = 0;
+        for (; chainID > 0; chainID /= 10) {
+            inbox = (inbox << 4) | (chainID % 10);
+        }
+        return address(uint160(inbox | (0xff << 152)));
     }
 }

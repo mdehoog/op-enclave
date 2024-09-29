@@ -59,13 +59,17 @@ contract OutputOracle is Initializable, ISemver {
     ) {
         systemConfigGlobal = _systemConfigGlobal;
         maxOutputCount = _maxOutputCount;
-        initialize(0);
+        initialize(0, 0);
     }
 
     /// @notice Initializer.
-    function initialize(bytes32 _configHash) public initializer {
+    function initialize(bytes32 _configHash, bytes32 _genesisOutputRoot) public initializer {
         configHash = _configHash;
-        latestOutputIndex = maxOutputCount-1;
+        l2Outputs.push(Types.OutputProposal({
+            outputRoot: _genesisOutputRoot,
+            timestamp: uint128(block.timestamp),
+            l2BlockNumber: uint128(0)
+        }));
     }
 
     function proposer() public view returns (address) {

@@ -295,7 +295,7 @@ contract DeploySystem is Deploy {
             _proxy: payable(l2OutputOracleProxy),
             _implementation: l2OutputOracle,
             _innerCallData: abi.encodeCall(
-                OutputOracle.initialize, (0)
+                OutputOracle.initialize, (0, 0)
             )
         });
 
