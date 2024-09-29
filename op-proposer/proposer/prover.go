@@ -187,7 +187,7 @@ func await[E any](f func() (E, error), w func(err error) error) chan result[E] {
 	return ch
 }
 
-func appendNonNil[E any](r []E, e E) []E {
+func appendNonNil(r []error, e error) []error {
 	if e != nil {
 		r = append(r, e)
 	}
