@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -12,11 +13,6 @@ import (
 func main() {
 	log.SetDefault(log.NewLogger(log.LogfmtHandlerWithLevel(os.Stdout, log.LevelInfo)))
 
-	listener, err := vsock.Listen(1234, &vsock.Config{})
-	if err != nil {
-		log.Crit("Error opening vsock listener", "error", err)
-	}
-
 	s := rpc.NewServer()
 	serv, err := enclave.NewServer()
 	if err != nil {
@@ -27,7 +23,13 @@ func main() {
 		log.Crit("Error registering API", "error", err)
 	}
 
-	err = s.ServeListener(listener)
+	listener, err := vsock.Listen(1234, &vsock.Config{})
+	if err != nil {
+		log.Warn("Error opening vsock listener, running in HTTP mode", "error", err)
+		err = http.ListenAndServe(":1234", s)
+	} else {
+		err = s.ServeListener(listener)
+	}
 	if err != nil {
 		log.Crit("Error starting server", "error", err)
 	}

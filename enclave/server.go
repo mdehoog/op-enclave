@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
@@ -22,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/hf/nitrite"
@@ -79,35 +81,42 @@ type Server struct {
 var _ RPC = (*Server)(nil)
 
 func NewServer() (*Server, error) {
+	var random io.Reader
+	var pcr0 []byte
 	session, err := nsm.OpenDefaultSession()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open session: %w", err)
+		log.Warn("failed to open Nitro Secure Module session, running in local mode", "error", err)
+		random = rand.Reader
+	} else {
+		defer func() {
+			_ = session.Close()
+		}()
+		pcr, err := session.Send(&request.DescribePCR{
+			Index: 0,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe PCR: %w", err)
+		}
+		if pcr.Error != "" {
+			return nil, fmt.Errorf("NSM device returned an error: %s", pcr.Error)
+		}
+		if pcr.DescribePCR == nil || pcr.DescribePCR.Data == nil || len(pcr.DescribePCR.Data) == 0 {
+			return nil, errors.New("NSM device did not return PCR data")
+		}
+		pcr0 = pcr.DescribePCR.Data
+		random = session
 	}
-	defer func() {
-		_ = session.Close()
-	}()
-	decryptionKey, err := rsa.GenerateKey(session, 2048)
+
+	decryptionKey, err := rsa.GenerateKey(random, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate decryption key: %w", err)
 	}
-	signerKey, err := ecdsa.GenerateKey(crypto.S256(), session)
+	signerKey, err := ecdsa.GenerateKey(crypto.S256(), random)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signer key: %w", err)
 	}
-	pcr, err := session.Send(&request.DescribePCR{
-		Index: 0,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe PCR: %w", err)
-	}
-	if pcr.Error != "" {
-		return nil, fmt.Errorf("NSM device returned an error: %s", pcr.Error)
-	}
-	if pcr.DescribePCR == nil || pcr.DescribePCR.Data == nil || len(pcr.DescribePCR.Data) == 0 {
-		return nil, errors.New("NSM device did not return PCR data")
-	}
 	return &Server{
-		pcr0:          pcr.DescribePCR.Data,
+		pcr0:          pcr0,
 		signerKey:     signerKey,
 		decryptionKey: decryptionKey,
 	}, nil
