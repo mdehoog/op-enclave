@@ -23,7 +23,6 @@ var uint64Type abi.Type
 var addressType abi.Type
 var bytes32Type abi.Type
 
-var deployConfig = state.DefaultDeployConfig()
 var chainConfigTemplate params.ChainConfig
 
 func init() {
@@ -32,6 +31,7 @@ func init() {
 	addressType, _ = abi.NewType("address", "", nil)
 	bytes32Type, _ = abi.NewType("bytes32", "", nil)
 
+	deployConfig := state.DefaultDeployConfig()
 	deployConfig.L2ChainID = 1
 	var err error
 	chainConfigTemplate, err = newChainConfigTemplate(&deployConfig)

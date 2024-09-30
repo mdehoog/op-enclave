@@ -28,11 +28,8 @@ var (
 	_ = event.NewSubscription
 )
 
-// DeployChainDeploy is an auto generated low-level Go binding around an user-defined struct.
-type DeployChainDeploy struct {
-	L1Number                     uint64
-	L1Hash                       [32]byte
-	L2Time                       uint64
+// DeployChainDeployAddresses is an auto generated low-level Go binding around an user-defined struct.
+type DeployChainDeployAddresses struct {
 	L2OutputOracle               common.Address
 	SystemConfig                 common.Address
 	OptimismPortal               common.Address
@@ -44,7 +41,7 @@ type DeployChainDeploy struct {
 
 // DeployChainMetaData contains all meta data concerning the DeployChain contract.
 var DeployChainMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_proxyAdmin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_portal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_outputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_superchainConfig\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"MESSAGE_PASSER_STORAGE_HASH\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"salt\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"genesisL2Hash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"genesisL2StateRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"batcherAddress\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"basefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"blobbasefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"gasLimit\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"unsafeBlockSigner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structDeployChain.Deploy\",\"components\":[{\"name\":\"l1Number\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"l1Hash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"l2Time\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"}]}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"l1CrossDomainMessenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1ERC721Bridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1StandardBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"optimismMintableERC20Factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"outputOracle\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"portal\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proxyAdmin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"superchainConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"systemConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_proxyAdmin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_superchainConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_protocolVersions\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"MESSAGE_PASSER_STORAGE_HASH\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"calculateBatchInbox\",\"inputs\":[{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"deploy\",\"inputs\":[{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"genesisL1Number\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"genesisL2Hash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"genesisL2StateRoot\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"genesisL2Time\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"basefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"blobbasefeeScalar\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"gasLimit\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"batcherAddress\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"unsafeBlockSigner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deployAddresses\",\"inputs\":[{\"name\":\"chainID\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structDeployChain.DeployAddresses\",\"components\":[{\"name\":\"l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1CrossDomainMessenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1ERC721Bridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l1StandardBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"l2OutputOracle\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"optimismMintableERC20Factory\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"optimismPortal\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"protocolVersions\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"proxyAdmin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"superchainConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"systemConfig\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Deploy\",\"inputs\":[{\"name\":\"chainID\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"configHash\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"},{\"name\":\"outputRoot\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"},{\"name\":\"batchInbox\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"addresses\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structDeployChain.DeployAddresses\",\"components\":[{\"name\":\"l2OutputOracle\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"systemConfig\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismPortal\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1CrossDomainMessenger\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1StandardBridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"l1ERC721Bridge\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"optimismMintableERC20Factory\",\"type\":\"address\",\"internalType\":\"address\"}]}],\"anonymous\":false}]",
 }
 
 // DeployChainABI is the input ABI used to generate the binding from.
@@ -224,6 +221,68 @@ func (_DeployChain *DeployChainCallerSession) MESSAGEPASSERSTORAGEHASH() ([32]by
 	return _DeployChain.Contract.MESSAGEPASSERSTORAGEHASH(&_DeployChain.CallOpts)
 }
 
+// CalculateBatchInbox is a free data retrieval call binding the contract method 0x36e0909b.
+//
+// Solidity: function calculateBatchInbox(uint256 chainID) pure returns(address)
+func (_DeployChain *DeployChainCaller) CalculateBatchInbox(opts *bind.CallOpts, chainID *big.Int) (common.Address, error) {
+	var out []interface{}
+	err := _DeployChain.contract.Call(opts, &out, "calculateBatchInbox", chainID)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// CalculateBatchInbox is a free data retrieval call binding the contract method 0x36e0909b.
+//
+// Solidity: function calculateBatchInbox(uint256 chainID) pure returns(address)
+func (_DeployChain *DeployChainSession) CalculateBatchInbox(chainID *big.Int) (common.Address, error) {
+	return _DeployChain.Contract.CalculateBatchInbox(&_DeployChain.CallOpts, chainID)
+}
+
+// CalculateBatchInbox is a free data retrieval call binding the contract method 0x36e0909b.
+//
+// Solidity: function calculateBatchInbox(uint256 chainID) pure returns(address)
+func (_DeployChain *DeployChainCallerSession) CalculateBatchInbox(chainID *big.Int) (common.Address, error) {
+	return _DeployChain.Contract.CalculateBatchInbox(&_DeployChain.CallOpts, chainID)
+}
+
+// DeployAddresses is a free data retrieval call binding the contract method 0xbeab4f7e.
+//
+// Solidity: function deployAddresses(uint256 chainID) view returns((address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainCaller) DeployAddresses(opts *bind.CallOpts, chainID *big.Int) (DeployChainDeployAddresses, error) {
+	var out []interface{}
+	err := _DeployChain.contract.Call(opts, &out, "deployAddresses", chainID)
+
+	if err != nil {
+		return *new(DeployChainDeployAddresses), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(DeployChainDeployAddresses)).(*DeployChainDeployAddresses)
+
+	return out0, err
+
+}
+
+// DeployAddresses is a free data retrieval call binding the contract method 0xbeab4f7e.
+//
+// Solidity: function deployAddresses(uint256 chainID) view returns((address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainSession) DeployAddresses(chainID *big.Int) (DeployChainDeployAddresses, error) {
+	return _DeployChain.Contract.DeployAddresses(&_DeployChain.CallOpts, chainID)
+}
+
+// DeployAddresses is a free data retrieval call binding the contract method 0xbeab4f7e.
+//
+// Solidity: function deployAddresses(uint256 chainID) view returns((address,address,address,address,address,address,address))
+func (_DeployChain *DeployChainCallerSession) DeployAddresses(chainID *big.Int) (DeployChainDeployAddresses, error) {
+	return _DeployChain.Contract.DeployAddresses(&_DeployChain.CallOpts, chainID)
+}
+
 // L1CrossDomainMessenger is a free data retrieval call binding the contract method 0xa7119869.
 //
 // Solidity: function l1CrossDomainMessenger() view returns(address)
@@ -317,6 +376,37 @@ func (_DeployChain *DeployChainCallerSession) L1StandardBridge() (common.Address
 	return _DeployChain.Contract.L1StandardBridge(&_DeployChain.CallOpts)
 }
 
+// L2OutputOracle is a free data retrieval call binding the contract method 0x4d9f1559.
+//
+// Solidity: function l2OutputOracle() view returns(address)
+func (_DeployChain *DeployChainCaller) L2OutputOracle(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _DeployChain.contract.Call(opts, &out, "l2OutputOracle")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// L2OutputOracle is a free data retrieval call binding the contract method 0x4d9f1559.
+//
+// Solidity: function l2OutputOracle() view returns(address)
+func (_DeployChain *DeployChainSession) L2OutputOracle() (common.Address, error) {
+	return _DeployChain.Contract.L2OutputOracle(&_DeployChain.CallOpts)
+}
+
+// L2OutputOracle is a free data retrieval call binding the contract method 0x4d9f1559.
+//
+// Solidity: function l2OutputOracle() view returns(address)
+func (_DeployChain *DeployChainCallerSession) L2OutputOracle() (common.Address, error) {
+	return _DeployChain.Contract.L2OutputOracle(&_DeployChain.CallOpts)
+}
+
 // OptimismMintableERC20Factory is a free data retrieval call binding the contract method 0x9b7d7f0a.
 //
 // Solidity: function optimismMintableERC20Factory() view returns(address)
@@ -348,12 +438,12 @@ func (_DeployChain *DeployChainCallerSession) OptimismMintableERC20Factory() (co
 	return _DeployChain.Contract.OptimismMintableERC20Factory(&_DeployChain.CallOpts)
 }
 
-// OutputOracle is a free data retrieval call binding the contract method 0xe02b4c4a.
+// OptimismPortal is a free data retrieval call binding the contract method 0x0a49cb03.
 //
-// Solidity: function outputOracle() view returns(address)
-func (_DeployChain *DeployChainCaller) OutputOracle(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function optimismPortal() view returns(address)
+func (_DeployChain *DeployChainCaller) OptimismPortal(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _DeployChain.contract.Call(opts, &out, "outputOracle")
+	err := _DeployChain.contract.Call(opts, &out, "optimismPortal")
 
 	if err != nil {
 		return *new(common.Address), err
@@ -365,26 +455,26 @@ func (_DeployChain *DeployChainCaller) OutputOracle(opts *bind.CallOpts) (common
 
 }
 
-// OutputOracle is a free data retrieval call binding the contract method 0xe02b4c4a.
+// OptimismPortal is a free data retrieval call binding the contract method 0x0a49cb03.
 //
-// Solidity: function outputOracle() view returns(address)
-func (_DeployChain *DeployChainSession) OutputOracle() (common.Address, error) {
-	return _DeployChain.Contract.OutputOracle(&_DeployChain.CallOpts)
+// Solidity: function optimismPortal() view returns(address)
+func (_DeployChain *DeployChainSession) OptimismPortal() (common.Address, error) {
+	return _DeployChain.Contract.OptimismPortal(&_DeployChain.CallOpts)
 }
 
-// OutputOracle is a free data retrieval call binding the contract method 0xe02b4c4a.
+// OptimismPortal is a free data retrieval call binding the contract method 0x0a49cb03.
 //
-// Solidity: function outputOracle() view returns(address)
-func (_DeployChain *DeployChainCallerSession) OutputOracle() (common.Address, error) {
-	return _DeployChain.Contract.OutputOracle(&_DeployChain.CallOpts)
+// Solidity: function optimismPortal() view returns(address)
+func (_DeployChain *DeployChainCallerSession) OptimismPortal() (common.Address, error) {
+	return _DeployChain.Contract.OptimismPortal(&_DeployChain.CallOpts)
 }
 
-// Portal is a free data retrieval call binding the contract method 0x6425666b.
+// ProtocolVersions is a free data retrieval call binding the contract method 0x6624856a.
 //
-// Solidity: function portal() view returns(address)
-func (_DeployChain *DeployChainCaller) Portal(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function protocolVersions() view returns(address)
+func (_DeployChain *DeployChainCaller) ProtocolVersions(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _DeployChain.contract.Call(opts, &out, "portal")
+	err := _DeployChain.contract.Call(opts, &out, "protocolVersions")
 
 	if err != nil {
 		return *new(common.Address), err
@@ -396,18 +486,18 @@ func (_DeployChain *DeployChainCaller) Portal(opts *bind.CallOpts) (common.Addre
 
 }
 
-// Portal is a free data retrieval call binding the contract method 0x6425666b.
+// ProtocolVersions is a free data retrieval call binding the contract method 0x6624856a.
 //
-// Solidity: function portal() view returns(address)
-func (_DeployChain *DeployChainSession) Portal() (common.Address, error) {
-	return _DeployChain.Contract.Portal(&_DeployChain.CallOpts)
+// Solidity: function protocolVersions() view returns(address)
+func (_DeployChain *DeployChainSession) ProtocolVersions() (common.Address, error) {
+	return _DeployChain.Contract.ProtocolVersions(&_DeployChain.CallOpts)
 }
 
-// Portal is a free data retrieval call binding the contract method 0x6425666b.
+// ProtocolVersions is a free data retrieval call binding the contract method 0x6624856a.
 //
-// Solidity: function portal() view returns(address)
-func (_DeployChain *DeployChainCallerSession) Portal() (common.Address, error) {
-	return _DeployChain.Contract.Portal(&_DeployChain.CallOpts)
+// Solidity: function protocolVersions() view returns(address)
+func (_DeployChain *DeployChainCallerSession) ProtocolVersions() (common.Address, error) {
+	return _DeployChain.Contract.ProtocolVersions(&_DeployChain.CallOpts)
 }
 
 // ProxyAdmin is a free data retrieval call binding the contract method 0x3e47158c.
@@ -503,23 +593,171 @@ func (_DeployChain *DeployChainCallerSession) SystemConfig() (common.Address, er
 	return _DeployChain.Contract.SystemConfig(&_DeployChain.CallOpts)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
+// Deploy is a paid mutator transaction binding the contract method 0x143c0bc9.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainTransactor) Deploy(opts *bind.TransactOpts, salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
-	return _DeployChain.contract.Transact(opts, "deploy", salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
+// Solidity: function deploy(uint256 chainID, uint64 genesisL1Number, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, uint64 genesisL2Time, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address batcherAddress, address unsafeBlockSigner) returns()
+func (_DeployChain *DeployChainTransactor) Deploy(opts *bind.TransactOpts, chainID *big.Int, genesisL1Number uint64, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, genesisL2Time uint64, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, batcherAddress common.Address, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.contract.Transact(opts, "deploy", chainID, genesisL1Number, genesisL2Hash, genesisL2StateRoot, genesisL2Time, basefeeScalar, blobbasefeeScalar, gasLimit, batcherAddress, unsafeBlockSigner)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
+// Deploy is a paid mutator transaction binding the contract method 0x143c0bc9.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainSession) Deploy(salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
-	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
+// Solidity: function deploy(uint256 chainID, uint64 genesisL1Number, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, uint64 genesisL2Time, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address batcherAddress, address unsafeBlockSigner) returns()
+func (_DeployChain *DeployChainSession) Deploy(chainID *big.Int, genesisL1Number uint64, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, genesisL2Time uint64, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, batcherAddress common.Address, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, chainID, genesisL1Number, genesisL2Hash, genesisL2StateRoot, genesisL2Time, basefeeScalar, blobbasefeeScalar, gasLimit, batcherAddress, unsafeBlockSigner)
 }
 
-// Deploy is a paid mutator transaction binding the contract method 0x569d55f0.
+// Deploy is a paid mutator transaction binding the contract method 0x143c0bc9.
 //
-// Solidity: function deploy(bytes32 salt, uint256 chainID, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, address batcherAddress, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address unsafeBlockSigner) returns((uint64,bytes32,uint64,address,address,address,address,address,address,address))
-func (_DeployChain *DeployChainTransactorSession) Deploy(salt [32]byte, chainID *big.Int, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, batcherAddress common.Address, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, unsafeBlockSigner common.Address) (*types.Transaction, error) {
-	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, salt, chainID, genesisL2Hash, genesisL2StateRoot, batcherAddress, basefeeScalar, blobbasefeeScalar, gasLimit, unsafeBlockSigner)
+// Solidity: function deploy(uint256 chainID, uint64 genesisL1Number, bytes32 genesisL2Hash, bytes32 genesisL2StateRoot, uint64 genesisL2Time, uint32 basefeeScalar, uint32 blobbasefeeScalar, uint64 gasLimit, address batcherAddress, address unsafeBlockSigner) returns()
+func (_DeployChain *DeployChainTransactorSession) Deploy(chainID *big.Int, genesisL1Number uint64, genesisL2Hash [32]byte, genesisL2StateRoot [32]byte, genesisL2Time uint64, basefeeScalar uint32, blobbasefeeScalar uint32, gasLimit uint64, batcherAddress common.Address, unsafeBlockSigner common.Address) (*types.Transaction, error) {
+	return _DeployChain.Contract.Deploy(&_DeployChain.TransactOpts, chainID, genesisL1Number, genesisL2Hash, genesisL2StateRoot, genesisL2Time, basefeeScalar, blobbasefeeScalar, gasLimit, batcherAddress, unsafeBlockSigner)
+}
+
+// DeployChainDeployIterator is returned from FilterDeploy and is used to iterate over the raw logs and unpacked data for Deploy events raised by the DeployChain contract.
+type DeployChainDeployIterator struct {
+	Event *DeployChainDeploy // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *DeployChainDeployIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(DeployChainDeploy)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(DeployChainDeploy)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *DeployChainDeployIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *DeployChainDeployIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// DeployChainDeploy represents a Deploy event raised by the DeployChain contract.
+type DeployChainDeploy struct {
+	ChainID    *big.Int
+	ConfigHash [32]byte
+	OutputRoot [32]byte
+	BatchInbox common.Address
+	Addresses  DeployChainDeployAddresses
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterDeploy is a free log retrieval operation binding the contract event 0x49ea8b4c640f12c7d41cb7b7931d984f226f95ce1d55e1e449ee3d61b877c1ad.
+//
+// Solidity: event Deploy(uint256 indexed chainID, bytes32 configHash, bytes32 outputRoot, address batchInbox, (address,address,address,address,address,address,address) addresses)
+func (_DeployChain *DeployChainFilterer) FilterDeploy(opts *bind.FilterOpts, chainID []*big.Int) (*DeployChainDeployIterator, error) {
+
+	var chainIDRule []interface{}
+	for _, chainIDItem := range chainID {
+		chainIDRule = append(chainIDRule, chainIDItem)
+	}
+
+	logs, sub, err := _DeployChain.contract.FilterLogs(opts, "Deploy", chainIDRule)
+	if err != nil {
+		return nil, err
+	}
+	return &DeployChainDeployIterator{contract: _DeployChain.contract, event: "Deploy", logs: logs, sub: sub}, nil
+}
+
+// WatchDeploy is a free log subscription operation binding the contract event 0x49ea8b4c640f12c7d41cb7b7931d984f226f95ce1d55e1e449ee3d61b877c1ad.
+//
+// Solidity: event Deploy(uint256 indexed chainID, bytes32 configHash, bytes32 outputRoot, address batchInbox, (address,address,address,address,address,address,address) addresses)
+func (_DeployChain *DeployChainFilterer) WatchDeploy(opts *bind.WatchOpts, sink chan<- *DeployChainDeploy, chainID []*big.Int) (event.Subscription, error) {
+
+	var chainIDRule []interface{}
+	for _, chainIDItem := range chainID {
+		chainIDRule = append(chainIDRule, chainIDItem)
+	}
+
+	logs, sub, err := _DeployChain.contract.WatchLogs(opts, "Deploy", chainIDRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(DeployChainDeploy)
+				if err := _DeployChain.contract.UnpackLog(event, "Deploy", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDeploy is a log parse operation binding the contract event 0x49ea8b4c640f12c7d41cb7b7931d984f226f95ce1d55e1e449ee3d61b877c1ad.
+//
+// Solidity: event Deploy(uint256 indexed chainID, bytes32 configHash, bytes32 outputRoot, address batchInbox, (address,address,address,address,address,address,address) addresses)
+func (_DeployChain *DeployChainFilterer) ParseDeploy(log types.Log) (*DeployChainDeploy, error) {
+	event := new(DeployChainDeploy)
+	if err := _DeployChain.contract.UnpackLog(event, "Deploy", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
