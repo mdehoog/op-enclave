@@ -12,7 +12,8 @@ import { Hashing } from "@eth-optimism-bedrock/src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "@eth-optimism-bedrock/src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "@eth-optimism-bedrock/src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
+import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
+import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { L1Block } from "@eth-optimism-bedrock/src/L2/L1Block.sol";
@@ -185,7 +186,15 @@ contract Portal is Initializable, ResourceMetering, ISemver {
     ///         The SystemConfig is the source of truth for the resource config.
     /// @return ResourceMetering ResourceConfig
     function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory) {
-        return systemConfig.resourceConfig();
+        IResourceMetering.ResourceConfig memory config = systemConfig.resourceConfig();
+        return ResourceConfig({
+            maxResourceLimit: config.maxResourceLimit,
+            elasticityMultiplier: config.elasticityMultiplier,
+            baseFeeMaxChangeDenominator: config.baseFeeMaxChangeDenominator,
+            minimumBaseFee: config.minimumBaseFee,
+            systemTxMaxGas: config.systemTxMaxGas,
+            maximumBaseFee: config.maximumBaseFee
+        });
     }
 
     /// @notice Proves a withdrawal transaction.

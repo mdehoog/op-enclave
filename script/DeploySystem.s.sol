@@ -3,12 +3,13 @@ pragma solidity ^0.8.15;
 
 import { Deploy } from "@eth-optimism-bedrock/scripts/deploy/Deploy.s.sol";
 import { DeployConfig } from "@eth-optimism-bedrock/scripts/deploy/DeployConfig.s.sol";
-import { Types } from "@eth-optimism-bedrock/scripts/Types.sol";
-import { ChainAssertions } from "@eth-optimism-bedrock/scripts/ChainAssertions.sol";
+import { Types } from "@eth-optimism-bedrock/scripts/libraries/Types.sol";
+import { ChainAssertions } from "@eth-optimism-bedrock/scripts/deploy/ChainAssertions.sol";
 import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
-import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
+import { ISystemConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISystemConfig.sol";
+import { ISuperchainConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISuperchainConfig.sol";
 import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
-import { L2OutputOracle } from "@eth-optimism-bedrock/src/L1/L2OutputOracle.sol";
+import { IL2OutputOracle } from "@eth-optimism-bedrock/src/L1/interfaces/IL2OutputOracle.sol";
 import { Portal } from "src/Portal.sol";
 import { OutputOracle } from "src/OutputOracle.sol";
 import { OwnerConfig } from "src/OwnerConfig.sol";
@@ -17,6 +18,7 @@ import { SystemConfigGlobal } from "src/SystemConfigGlobal.sol";
 import { DeployChain } from "src/DeployChain.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
+import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
 
@@ -273,9 +275,9 @@ contract DeploySystem is Deploy {
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
                 (
-                    L2OutputOracle(l2OutputOracleProxy),
-                    SystemConfig(systemConfigProxy),
-                    SuperchainConfig(superchainConfigProxy)
+                    IL2OutputOracle(l2OutputOracleProxy),
+                    ISystemConfig(systemConfigProxy),
+                    ISuperchainConfig(superchainConfigProxy)
                 )
             )
         });
@@ -339,7 +341,7 @@ contract DeploySystem is Deploy {
         // Check that the contract is initialized
         ChainAssertions.assertSlotValueIsOne({ _contractAddress: address(config), _slot: 0, _offset: 0 });
 
-        ResourceMetering.ResourceConfig memory resourceConfig = config.resourceConfig();
+        IResourceMetering.ResourceConfig memory resourceConfig = config.resourceConfig();
 
         if (_isProxy) {
             require(config.owner() == _cfg.finalSystemOwner());
@@ -350,7 +352,7 @@ contract DeploySystem is Deploy {
             require(config.unsafeBlockSigner() == _cfg.p2pSequencerAddress());
             require(config.scalar() >> 248 == 1);
             // Check _config
-            ResourceMetering.ResourceConfig memory rconfig = Constants.DEFAULT_RESOURCE_CONFIG();
+            IResourceMetering.ResourceConfig memory rconfig = Constants.DEFAULT_RESOURCE_CONFIG();
             require(resourceConfig.maxResourceLimit == rconfig.maxResourceLimit);
             require(resourceConfig.elasticityMultiplier == rconfig.elasticityMultiplier);
             require(resourceConfig.baseFeeMaxChangeDenominator == rconfig.baseFeeMaxChangeDenominator);

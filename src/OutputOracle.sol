@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
+import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
