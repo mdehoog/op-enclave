@@ -8,8 +8,10 @@ import { ChainAssertions } from "@eth-optimism-bedrock/scripts/deploy/ChainAsser
 import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
 import { ISystemConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISystemConfig.sol";
 import { ISuperchainConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISuperchainConfig.sol";
+import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
 import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
 import { IL2OutputOracle } from "@eth-optimism-bedrock/src/L1/interfaces/IL2OutputOracle.sol";
+import { ProtocolVersions } from "@eth-optimism-bedrock/src/L1/ProtocolVersions.sol";
 import { Portal } from "src/Portal.sol";
 import { OutputOracle } from "src/OutputOracle.sol";
 import { OwnerConfig } from "src/OwnerConfig.sol";
@@ -27,33 +29,17 @@ contract DeploySystem is Deploy {
         console.log("start of L1 Deploy!");
         deploySafe("SystemOwnerSafe");
         console.log("deployed Safe!");
-        setupSuperchain2();
+
+        setupAdmin();
+
+        setupSuperchain();
         console.log("set up superchain!");
+
         setupOpChain2();
         console.log("set up op chain!");
+
         setupChainDeploy();
         console.log("set chain deploy!");
-    }
-
-    function setupSuperchain2() public {
-        console.log("Setting up Superchain");
-
-        // Deploy a new ProxyAdmin and AddressManager
-        // This proxy will be used on the SuperchainConfig and ProtocolVersions contracts, as well as the contracts
-        // in the OP Chain system.
-        deployAddressManager();
-        deployProxyAdmin();
-        transferProxyAdminOwnership();
-
-        // Deploy the SuperchainConfigProxy
-        deployERC1967Proxy("SuperchainConfigProxy");
-        deploySuperchainConfig();
-        initializeSuperchainConfig();
-
-        // Deploy the ProtocolVersionsProxy
-        deployERC1967Proxy("ProtocolVersionsProxy");
-        deployProtocolVersions();
-        initializeProtocolVersions();
     }
 
     function setupOpChain2() public {
@@ -93,6 +79,7 @@ contract DeploySystem is Deploy {
         // fake these, required for calls to `_proxies()`
         save("DisputeGameFactoryProxy", address(1));
         save("DelayedWETHProxy", address(1));
+        save("PermissionedDelayedWETHProxy", address(1));
         save("AnchorStateRegistryProxy", address(1));
     }
 
