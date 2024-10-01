@@ -145,11 +145,15 @@ contract DeployChain {
     }
 
     function calculateBatchInbox(uint256 chainID) public pure returns (address) {
-        uint256 inbox = 0;
+        uint256 reverse = 0;
         for (; chainID > 0; chainID /= 10) {
-            inbox = (inbox << 4) | (chainID % 10);
+            reverse = (reverse * 10) + (chainID % 10);
         }
-        return address(uint160(inbox | (0xff << 152)));
+        uint256 base16 = 0;
+        for (; reverse > 0; reverse /= 10) {
+            base16 = (base16 << 4) | (reverse % 10);
+        }
+        return address(uint160(base16 | (0xff << 152)));
     }
 
     function setupProxies(uint256 chainID) internal returns (DeployAddresses memory) {
