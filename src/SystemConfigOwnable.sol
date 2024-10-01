@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
 import { OwnableConfig } from "./OwnableConfig.sol";
 import { OwnerConfig } from "./OwnerConfig.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
-import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
-import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
+
+// Libraries
 import { Storage } from "@eth-optimism-bedrock/src/libraries/Storage.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
-import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
 import { GasPayingToken, IGasToken } from "@eth-optimism-bedrock/src/libraries/GasPayingToken.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+// Interfaces
+import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
+import { IOptimismPortal } from "@eth-optimism-bedrock/src/L1/interfaces/IOptimismPortal.sol";
+import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
+
+/// @custom:proxied true
 /// @title SystemConfigOwnable
 /// @notice The SystemConfig contract is used to manage configuration of an Optimism network.
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
@@ -101,9 +106,9 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
     event ConfigUpdate(uint256 indexed version, SystemConfig.UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 2.3.0-beta.2
+    /// @custom:semver 2.3.0-beta.3
     function version() public pure virtual returns (string memory) {
-        return "2.3.0-beta.2";
+        return "2.3.0-beta.3";
     }
 
     /// @notice Constructs the SystemConfig contract. Cannot set
@@ -288,7 +293,7 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
 
             // Set the gas paying token in storage and in the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
-            OptimismPortal(payable(optimismPortal())).setGasPayingToken({
+            IOptimismPortal(payable(optimismPortal())).setGasPayingToken({
                 _token: _token,
                 _decimals: GAS_PAYING_TOKEN_DECIMALS,
                 _name: name,

@@ -8,7 +8,6 @@ import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
 import { ISystemConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISystemConfig.sol";
 import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
 import { IOptimismPortal } from "@eth-optimism-bedrock/src/L1/interfaces/IOptimismPortal.sol";
-import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
 import { ISuperchainConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISuperchainConfig.sol";
 import { L2OutputOracle } from "@eth-optimism-bedrock/src/L1/L2OutputOracle.sol";
 import { L1StandardBridge } from "@eth-optimism-bedrock/src/L1/L1StandardBridge.sol";
@@ -242,8 +241,8 @@ contract DeployChain {
 
         Portal(payable(addresses.optimismPortal)).initialize(
             OutputOracle(addresses.l2OutputOracle),
-            SystemConfig(addresses.systemConfig),
-            SuperchainConfig(superchainConfig)
+            ISystemConfig(addresses.systemConfig),
+            ISuperchainConfig(superchainConfig)
         );
 
         L1CrossDomainMessenger(addresses.l1CrossDomainMessenger).initialize(

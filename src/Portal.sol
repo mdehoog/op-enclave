@@ -1,26 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { SafeCall } from "@eth-optimism-bedrock/src/libraries/SafeCall.sol";
+import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
+import { L1Block } from "@eth-optimism-bedrock/src/L2/L1Block.sol";
 import { OutputOracle } from "./OutputOracle.sol";
-import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
-import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
+
+// Libraries
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeCall } from "@eth-optimism-bedrock/src/libraries/SafeCall.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Hashing } from "@eth-optimism-bedrock/src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "@eth-optimism-bedrock/src/libraries/trie/SecureMerkleTrie.sol";
-import { AddressAliasHelper } from "@eth-optimism-bedrock/src/vendor/AddressAliasHelper.sol";
-import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
-import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { L1Block } from "@eth-optimism-bedrock/src/L2/L1Block.sol";
 import { Predeploys } from "@eth-optimism-bedrock/src/libraries/Predeploys.sol";
+import { AddressAliasHelper } from "@eth-optimism-bedrock/src/vendor/AddressAliasHelper.sol";
 import "@eth-optimism-bedrock/src/libraries/PortalErrors.sol";
 
-/// @custom:proxied
+// Interfaces
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IL2OutputOracle } from "@eth-optimism-bedrock/src/L1/interfaces/IL2OutputOracle.sol";
+import { ISystemConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISystemConfig.sol";
+import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
+import { ISuperchainConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISuperchainConfig.sol";
+import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
+
+/// @custom:proxied true
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
@@ -47,7 +53,7 @@ contract Portal is Initializable, ResourceMetering, ISemver {
     mapping(bytes32 => bool) public finalizedWithdrawals;
 
     /// @notice Contract of the Superchain Config.
-    SuperchainConfig public superchainConfig;
+    ISuperchainConfig public superchainConfig;
 
     /// @notice Contract of the L2OutputOracle.
     /// @custom:network-specific
@@ -55,7 +61,7 @@ contract Portal is Initializable, ResourceMetering, ISemver {
 
     /// @notice Contract of the SystemConfig.
     /// @custom:network-specific
-    SystemConfig public systemConfig;
+    ISystemConfig public systemConfig;
 
     /// @notice Represents the amount of native asset minted in L2. This may not
     ///         be 100% accurate due to the ability to send ether to the contract
@@ -91,17 +97,17 @@ contract Portal is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 2.8.1-beta.1
+    /// @custom:semver 2.8.1-beta.2
     function version() public pure virtual returns (string memory) {
-        return "2.8.1-beta.1";
+        return "2.8.1-beta.2";
     }
 
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
             _l2Oracle: OutputOracle(address(0)),
-            _systemConfig: SystemConfig(address(0)),
-            _superchainConfig: SuperchainConfig(address(0))
+            _systemConfig: ISystemConfig(address(0)),
+            _superchainConfig: ISuperchainConfig(address(0))
         });
     }
 
@@ -111,8 +117,8 @@ contract Portal is Initializable, ResourceMetering, ISemver {
     /// @param _superchainConfig Contract of the SuperchainConfig.
     function initialize(
         OutputOracle _l2Oracle,
-        SystemConfig _systemConfig,
-        SuperchainConfig _superchainConfig
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig
     )
         public
         initializer
