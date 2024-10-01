@@ -1,6 +1,6 @@
 .PHONY: bindings
 bindings:
-	forge clean && forge build --via-ir --extra-output-files abi
+	forge clean && forge build --extra-output-files abi
 	mkdir -p bindings
 	abigen --abi out/OutputOracle.sol/OutputOracle.abi.json --pkg bindings --type OutputOracle --out bindings/output_oracle.go
 	abigen --abi out/Portal.sol/Portal.abi.json --pkg bindings --type Portal --out bindings/portal.go
