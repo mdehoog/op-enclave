@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ISemver } from "@eth-optimism-bedrock/src/universal/ISemver.sol";
+import { SystemConfigGlobal } from "./SystemConfigGlobal.sol";
+
+// Libraries
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { SystemConfigGlobal } from "./SystemConfigGlobal.sol";
 
-/// @custom:proxied
+// Interfaces
+import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
+
+/// @custom:proxied true
 /// @title OutputOracle
 /// @notice The OutputOracle contains an array of L2 state outputs, where each output is a
 ///         commitment to the state of the L2 chain. Other contracts like the Portal use
@@ -46,8 +51,8 @@ contract OutputOracle is Initializable, ISemver {
     );
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
+    /// @custom:semver 1.8.1-beta.1
+    string public constant version = "1.8.1-beta.1";
 
     /// @notice Constructs the OutputOracle contract. Initializes variables to the same values as
     ///         in the getting-started config.
@@ -135,11 +140,11 @@ contract OutputOracle is Initializable, ISemver {
         // Make sure an output for this block number has actually been proposed.
         require(
             _l2BlockNumber <= latestBlockNumber(),
-            "L3OutputOracle: cannot get output for a block that has not been proposed"
+            "L2OutputOracle: cannot get output for a block that has not been proposed"
         );
 
         // Make sure there's at least one output proposed.
-        require(l2Outputs.length > 0, "L3OutputOracle: cannot get output as no outputs have been proposed yet");
+        require(l2Outputs.length > 0, "L2OutputOracle: cannot get output as no outputs have been proposed yet");
 
         // Find the output via binary search, guaranteed to exist.
         uint256 lo = 0;

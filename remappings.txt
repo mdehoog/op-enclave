@@ -7,4 +7,5 @@
 src/cannon/interfaces/=lib/optimism/packages/contracts-bedrock/src/cannon/interfaces/
 src/L1/=lib/optimism/packages/contracts-bedrock/src/L1/
 src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/
+src/universal/=lib/optimism/packages/contracts-bedrock/src/universal/
 scripts/=lib/optimism/packages/contracts-bedrock/scripts/

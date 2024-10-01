@@ -4,10 +4,15 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+optimizer = true
+optimizer_runs = 999999
 
-viaIR = true
+bytecode_hash = 'none'
+ast = true
+gas_limit = 9223372036854775807
 ffi = true
-evm_version = "shanghai"
+evm_version = "cancun"
+
 fs_permissions = [
     { access='read', path='./deploy-config/' },
     { access='read-write', path='./deployments/' }

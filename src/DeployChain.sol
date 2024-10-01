@@ -5,11 +5,14 @@ import { Portal } from "./Portal.sol";
 import { OutputOracle } from "./OutputOracle.sol";
 import { SystemConfigOwnable } from "./SystemConfigOwnable.sol";
 import { SystemConfig } from "@eth-optimism-bedrock/src/L1/SystemConfig.sol";
+import { ISystemConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISystemConfig.sol";
 import { OptimismPortal } from "@eth-optimism-bedrock/src/L1/OptimismPortal.sol";
-import { SuperchainConfig } from "@eth-optimism-bedrock/src/L1/SuperchainConfig.sol";
+import { IOptimismPortal } from "@eth-optimism-bedrock/src/L1/interfaces/IOptimismPortal.sol";
+import { ISuperchainConfig } from "@eth-optimism-bedrock/src/L1/interfaces/ISuperchainConfig.sol";
 import { L2OutputOracle } from "@eth-optimism-bedrock/src/L1/L2OutputOracle.sol";
 import { L1StandardBridge } from "@eth-optimism-bedrock/src/L1/L1StandardBridge.sol";
 import { L1CrossDomainMessenger } from "@eth-optimism-bedrock/src/L1/L1CrossDomainMessenger.sol";
+import { ICrossDomainMessenger } from "@eth-optimism-bedrock/src/universal/interfaces/ICrossDomainMessenger.sol";
 import { L1ERC721Bridge } from "@eth-optimism-bedrock/src/L1/L1ERC721Bridge.sol";
 import { OptimismMintableERC20Factory } from "@eth-optimism-bedrock/src/universal/OptimismMintableERC20Factory.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
@@ -26,6 +29,11 @@ contract DeployChain {
         address l1StandardBridge;
         address l1ERC721Bridge;
         address optimismMintableERC20Factory;
+    }
+
+    struct Hashes {
+        bytes32 configHash;
+        bytes32 genesisOutputRoot;
     }
 
     event Deploy(
@@ -98,101 +106,41 @@ contract DeployChain {
         address batcherAddress,
         address unsafeBlockSigner
     ) external {
-        bytes32 salt = keccak256(abi.encodePacked(chainID));
-        address _l2OutputOracle = setupProxy(l2OutputOracle, salt);
-        address _systemConfig = setupProxy(systemConfig, salt);
-        address _optimismPortal = setupProxy(optimismPortal, salt);
-        address _l1CrossDomainMessenger = setupProxy(l1CrossDomainMessenger, salt);
-        address _l1StandardBridge = setupProxy(l1StandardBridge, salt);
-        address _l1ERC721Bridge = setupProxy(l1ERC721Bridge, salt);
-        address _optimismMintableERC20Factory = setupProxy(optimismMintableERC20Factory, salt);
-
-        bytes32 scalar = bytes32((uint256(0x01) << 248) | (uint256(blobbasefeeScalar) << 32) | basefeeScalar);
+        DeployAddresses memory addresses = setupProxies(chainID);
         bytes32 genesisL1Hash = blockhash(uint256(genesisL1Number));
-        bytes32 configHash = keccak256(abi.encodePacked(
-            uint64(0), // version
+
+        Hashes memory hashes = calculateHashes(
             chainID,
             genesisL1Hash,
-            genesisL1Number,
             genesisL2Hash,
+            genesisL2StateRoot,
             genesisL2Time,
-            batcherAddress,
-            scalar,
+            basefeeScalar,
+            blobbasefeeScalar,
             gasLimit,
-            _optimismPortal,
-            _systemConfig
-        ));
-
-        bytes32 genesisOutputRoot = Hashing.hashOutputRootProof(Types.OutputRootProof({
-            version: 0,
-            stateRoot: genesisL2StateRoot,
-            messagePasserStorageRoot: MESSAGE_PASSER_STORAGE_HASH,
-            latestBlockhash: genesisL2Hash
-        }));
-
-        OutputOracle(_l2OutputOracle).initialize(configHash, genesisOutputRoot);
+            batcherAddress,
+            addresses
+        );
 
         address batchInbox = calculateBatchInbox(chainID);
-        SystemConfigOwnable(_systemConfig).initialize({
-            _basefeeScalar: basefeeScalar,
-            _blobbasefeeScalar: blobbasefeeScalar,
-            _batcherHash: bytes32(uint256(uint160(batcherAddress))),
-            _gasLimit: gasLimit,
-            _unsafeBlockSigner: unsafeBlockSigner,
-            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
-            _batchInbox: batchInbox,
-            _addresses: SystemConfig.Addresses({
-                l1CrossDomainMessenger: _l1CrossDomainMessenger,
-                l1ERC721Bridge: _l1ERC721Bridge,
-                l1StandardBridge: _l1StandardBridge,
-                disputeGameFactory: address(0),
-                optimismPortal: _optimismPortal,
-                optimismMintableERC20Factory: _optimismMintableERC20Factory,
-                gasPayingToken: address(0)
-            })
-        });
 
-        Portal(payable(_optimismPortal)).initialize(
-            OutputOracle(_l2OutputOracle),
-            SystemConfig(_systemConfig),
-            SuperchainConfig(superchainConfig)
-        );
-
-        L1CrossDomainMessenger(_l1CrossDomainMessenger).initialize(
-            SuperchainConfig(superchainConfig),
-            OptimismPortal(payable(_optimismPortal)),
-            SystemConfig(_systemConfig)
-        );
-
-        L1StandardBridge(payable(_l1StandardBridge)).initialize(
-            L1CrossDomainMessenger(_l1CrossDomainMessenger),
-            SuperchainConfig(superchainConfig),
-            SystemConfig(_systemConfig)
-        );
-
-        L1ERC721Bridge(_l1ERC721Bridge).initialize(
-            L1CrossDomainMessenger(_l1CrossDomainMessenger),
-            SuperchainConfig(superchainConfig)
-        );
-
-        OptimismMintableERC20Factory(_optimismMintableERC20Factory).initialize(
-            _l1StandardBridge
+        initializeProxies(
+            basefeeScalar,
+            blobbasefeeScalar,
+            gasLimit,
+            batcherAddress,
+            unsafeBlockSigner,
+            batchInbox,
+            hashes,
+            addresses
         );
 
         emit Deploy({
             chainID: chainID,
-            configHash: configHash,
-            outputRoot: genesisOutputRoot,
+            configHash: hashes.configHash,
+            outputRoot: hashes.genesisOutputRoot,
             batchInbox: batchInbox,
-            addresses: DeployAddresses({
-                l2OutputOracle: _l2OutputOracle,
-                systemConfig: _systemConfig,
-                optimismPortal: _optimismPortal,
-                l1CrossDomainMessenger: _l1CrossDomainMessenger,
-                l1StandardBridge: _l1StandardBridge,
-                l1ERC721Bridge: _l1ERC721Bridge,
-                optimismMintableERC20Factory: _optimismMintableERC20Factory
-            })
+            addresses: addresses
         });
     }
 
@@ -202,6 +150,121 @@ contract DeployChain {
             inbox = (inbox << 4) | (chainID % 10);
         }
         return address(uint160(inbox | (0xff << 152)));
+    }
+
+    function setupProxies(uint256 chainID) internal returns (DeployAddresses memory) {
+        bytes32 salt = keccak256(abi.encodePacked(chainID));
+        return DeployAddresses({
+            l2OutputOracle: setupProxy(l2OutputOracle, salt),
+            systemConfig: setupProxy(systemConfig, salt),
+            optimismPortal: setupProxy(optimismPortal, salt),
+            l1CrossDomainMessenger: setupProxy(l1CrossDomainMessenger, salt),
+            l1StandardBridge: setupProxy(l1StandardBridge, salt),
+            l1ERC721Bridge: setupProxy(l1ERC721Bridge, salt),
+            optimismMintableERC20Factory: setupProxy(optimismMintableERC20Factory, salt)
+        });
+    }
+
+    function calculateHashes(
+        uint256 chainID,
+        bytes32 genesisL1Hash,
+        bytes32 genesisL2Hash,
+        bytes32 genesisL2StateRoot,
+        uint64 genesisL2Time,
+        uint32 basefeeScalar,
+        uint32 blobbasefeeScalar,
+        uint64 gasLimit,
+        address batcherAddress,
+        DeployAddresses memory addresses
+    ) internal pure returns (Hashes memory) {
+        bytes32 scalar = bytes32((uint256(0x01) << 248) | (uint256(blobbasefeeScalar) << 32) | basefeeScalar);
+
+        bytes32 configHash = keccak256(abi.encodePacked(
+            uint64(0), // version
+            chainID,
+            genesisL1Hash,
+            genesisL2Hash,
+            genesisL2Time,
+            batcherAddress,
+            scalar,
+            gasLimit,
+            addresses.optimismPortal,
+            addresses.systemConfig
+        ));
+
+        bytes32 genesisOutputRoot = Hashing.hashOutputRootProof(Types.OutputRootProof({
+            version: 0,
+            stateRoot: genesisL2StateRoot,
+            messagePasserStorageRoot: MESSAGE_PASSER_STORAGE_HASH,
+            latestBlockhash: genesisL2Hash
+        }));
+
+        return Hashes({
+            configHash: configHash,
+            genesisOutputRoot: genesisOutputRoot
+        });
+    }
+
+    function initializeProxies(
+        uint32 basefeeScalar,
+        uint32 blobbasefeeScalar,
+        uint64 gasLimit,
+        address batcherAddress,
+        address unsafeBlockSigner,
+        address batchInbox,
+        Hashes memory hashes,
+        DeployAddresses memory addresses
+    ) internal {
+        OutputOracle(addresses.l2OutputOracle).initialize(
+            hashes.configHash,
+            hashes.genesisOutputRoot
+        );
+
+        SystemConfigOwnable(addresses.systemConfig).initialize({
+            _basefeeScalar: basefeeScalar,
+            _blobbasefeeScalar: blobbasefeeScalar,
+            _batcherHash: bytes32(uint256(uint160(batcherAddress))),
+            _gasLimit: gasLimit,
+            _unsafeBlockSigner: unsafeBlockSigner,
+            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
+            _batchInbox: batchInbox,
+            _addresses: SystemConfig.Addresses({
+                l1CrossDomainMessenger: addresses.l1CrossDomainMessenger,
+                l1ERC721Bridge: addresses.l1ERC721Bridge,
+                l1StandardBridge: addresses.l1StandardBridge,
+                disputeGameFactory: address(0),
+                optimismPortal: addresses.optimismPortal,
+                optimismMintableERC20Factory: addresses.optimismMintableERC20Factory,
+                gasPayingToken: address(0)
+            })
+        });
+
+        Portal(payable(addresses.optimismPortal)).initialize(
+            OutputOracle(addresses.l2OutputOracle),
+            ISystemConfig(addresses.systemConfig),
+            ISuperchainConfig(superchainConfig)
+        );
+
+        L1CrossDomainMessenger(addresses.l1CrossDomainMessenger).initialize(
+            ISuperchainConfig(superchainConfig),
+            IOptimismPortal(payable(addresses.optimismPortal)),
+            ISystemConfig(addresses.systemConfig)
+        );
+
+        L1StandardBridge(payable(addresses.l1StandardBridge)).initialize(
+            ICrossDomainMessenger(addresses.l1CrossDomainMessenger),
+            ISuperchainConfig(superchainConfig),
+            ISystemConfig(addresses.systemConfig)
+        );
+
+        L1ERC721Bridge(addresses.l1ERC721Bridge).initialize(
+            ICrossDomainMessenger(addresses.l1CrossDomainMessenger),
+            ISuperchainConfig(superchainConfig)
+        );
+
+        OptimismMintableERC20Factory(addresses.optimismMintableERC20Factory).initialize(
+            addresses.l1StandardBridge
+        );
     }
 
     function setupProxy(address proxy, bytes32 salt) internal returns (address instance) {
