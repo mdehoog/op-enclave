@@ -320,31 +320,30 @@ func (s *Server) ExecuteStateless(
 	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
 		Transactions: blockTxs,
 	})
-	stateRoot, _, err := core.ExecuteStateless(config.ChainConfig, block, w)
+	blockHeader.Root, blockHeader.ReceiptHash, err = core.ExecuteStateless(config.ChainConfig, block, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute stateless: %w", err)
 	}
-	if stateRoot != expectedRoot {
+	if blockHeader.Root != expectedRoot {
 		return nil, errors.New("invalid state root")
 	}
 
 	if messageAccount.Address.Cmp(l2ToL1MessagePasserAddress) != 0 {
 		return nil, errors.New("invalid message account address")
 	}
-	if err = messageAccount.Verify(stateRoot); err != nil {
+	if err = messageAccount.Verify(blockHeader.Root); err != nil {
 		return nil, fmt.Errorf("failed to verify message account: %w", err)
 	}
 
 	prevOutputRoot := outputRootV0(previousBlockHeader, prevMessageAccountHash)
 	outputRoot := outputRootV0(blockHeader, messageAccount.StorageHash)
 
-	configBin, err := config.MarshalBinary()
+	configHash, err := config.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
 	}
-	configBinHash := crypto.Keccak256(configBin)
 
-	data := append(configBinHash, l1OriginHash[:]...)
+	data := append(configHash[:], l1OriginHash[:]...)
 	data = append(data, prevOutputRoot[:]...)
 	data = append(data, outputRoot[:]...)
 	sig, err := crypto.Sign(crypto.Keccak256(data), s.signerKey)
