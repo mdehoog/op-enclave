@@ -87,7 +87,7 @@ contract OutputOracle is Initializable, ISemver {
     }
 
     function proposer() public view returns (address) {
-        address _proposer = systemConfig.proposer();
+        address _proposer = address(systemConfig) != address(0) ? systemConfig.proposer() : address(0);
         return _proposer != address(0) ? _proposer : systemConfigGlobal.proposer();
     }
 
