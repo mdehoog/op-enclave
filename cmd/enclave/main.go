@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/http"
-	"os"
 
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/mdehoog/op-nitro/enclave"
@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	log.SetDefault(log.NewLogger(log.LogfmtHandlerWithLevel(os.Stdout, log.LevelInfo)))
+	oplog.SetupDefaults()
 
 	s := rpc.NewServer()
 	serv, err := enclave.NewServer()

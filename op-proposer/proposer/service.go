@@ -220,9 +220,9 @@ func (ps *ProposerService) initDriver() error {
 		Metr:          ps.Metrics,
 		Cfg:           ps.ProposerConfig,
 		Txmgr:         ps.TxManager,
-		L1Client:      newClient(ps.L1Client, ps.Metrics.L1Cache),
-		L2Client:      newClient(ps.L2Client, ps.Metrics.L2Cache),
-		RollupClient:  newRollupClient(ps.RollupClient, ps.Metrics.WitnessCache),
+		L1Client:      NewClient(ps.L1Client, ps.Metrics.L1Cache),
+		L2Client:      NewClient(ps.L2Client, ps.Metrics.L2Cache),
+		RollupClient:  NewRollupClient(ps.RollupClient, ps.Metrics.WitnessCache),
 		EnclaveClient: &enclave.Client{Client: ps.EnclaveClient},
 	})
 	if err != nil {

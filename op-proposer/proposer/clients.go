@@ -33,6 +33,11 @@ type L2Client interface {
 	Close()
 }
 
+type Client interface {
+	L1Client
+	L2Client
+}
+
 type RollupClient interface {
 	RollupConfig(ctx context.Context) (*rollup.Config, error)
 	SyncStatus(ctx context.Context) (*eth.SyncStatus, error)
@@ -50,7 +55,7 @@ type ethClient struct {
 var _ L1Client = &ethClient{}
 var _ L2Client = &ethClient{}
 
-func newClient(client *ethclient.Client, metrics caching.Metrics) *ethClient {
+func NewClient(client *ethclient.Client, metrics caching.Metrics) Client {
 	cacheSize := 1000
 	return &ethClient{
 		client:        client,
@@ -164,7 +169,7 @@ type rollupClient struct {
 
 var _ RollupClient = &rollupClient{}
 
-func newRollupClient(client *rpc.Client, metrics caching.Metrics) *rollupClient {
+func NewRollupClient(client *rpc.Client, metrics caching.Metrics) RollupClient {
 	cacheSize := 1000
 	return &rollupClient{
 		client:       client,

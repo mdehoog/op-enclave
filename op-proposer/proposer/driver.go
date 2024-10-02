@@ -54,7 +54,7 @@ type L2OutputSubmitter struct {
 	ooContract OOContract
 	ooABI      *abi.ABI
 
-	prover *prover
+	prover *Prover
 }
 
 // NewL2OutputSubmitter creates a new L2 Output Submitter
@@ -94,7 +94,7 @@ func newL2OOSubmitter(ctx context.Context, cancel context.CancelFunc, setup Driv
 		return nil, err
 	}
 
-	prover, err := newProver(cCtx, setup.L1Client, setup.L2Client, setup.RollupClient, setup.EnclaveClient)
+	prover, err := NewProver(cCtx, setup.L1Client, setup.L2Client, setup.RollupClient, setup.EnclaveClient)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -165,7 +165,7 @@ func (l *L2OutputSubmitter) loop() {
 	ctx := l.ctx
 	ticker := time.NewTicker(l.Cfg.PollInterval)
 	defer ticker.Stop()
-	var lastProposal *proposal
+	var lastProposal *Proposal
 	for {
 		select {
 		case <-ticker.C:
@@ -196,7 +196,7 @@ func (l *L2OutputSubmitter) loop() {
 	}
 }
 
-func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastProposal *proposal) (*proposal, bool, error) {
+func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastProposal *Proposal) (*Proposal, bool, error) {
 	proposed, err := l.ooContract.LatestL2Output(&bind.CallOpts{
 		Context: ctx,
 	})
@@ -207,7 +207,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 
 	// purge reorged blocks
 	if lastProposal != nil {
-		lastProposalBlockRef := lastProposal.blockRef
+		lastProposalBlockRef := lastProposal.BlockRef
 		proposedHeader, err := l.L2Client.HeaderByNumber(ctx, new(big.Int).SetUint64(lastProposalBlockRef.Number))
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to get header for block %d: %w", lastProposalBlockRef.Number, err)
@@ -234,7 +234,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 
 	// TODO implement proposal array limit (aggregate in blocks)
 	// TODO implement a pool of go-routines for parallel proof generation
-	var proposals []*proposal
+	var proposals []*Proposal
 	if lastProposal != nil {
 		proposals = append(proposals, lastProposal)
 	}
@@ -246,12 +246,14 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		}
 		proposals = append(proposals, proposal)
 		shouldPropose = shouldPropose || anyWithdrawals
+		l.Log.Info("Generated proof for block", "block", i, "lastest", latestBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
 	}
 
 	if len(proposals) == 0 {
 		return nil, false, nil
 	}
 
+	log.Info("Aggregating proofs", "proposals", len(proposals))
 	lastProposal, err = l.prover.Aggregate(ctx, proposed.OutputRoot, proposals)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
@@ -259,24 +261,24 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 	return lastProposal, shouldPropose, nil
 }
 
-func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, proposal *proposal) {
+func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, proposal *Proposal) {
 	cCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
 	if err := l.sendTransaction(cCtx, proposal); err != nil {
 		l.Log.Error("Failed to send proposal transaction",
 			"err", err,
-			"block", proposal.blockRef)
+			"block", proposal.BlockRef)
 		return
 	}
-	l.Metr.RecordL2BlocksProposed(proposal.blockRef)
+	l.Metr.RecordL2BlocksProposed(proposal.BlockRef)
 
 	// TODO purge witnesses here
 }
 
 // sendTransaction creates & sends transactions through the underlying transaction manager.
-func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, proposal *proposal) error {
-	l.Log.Info("Proposing output root", "output", proposal.output.OutputRoot, "block", proposal.blockRef)
+func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, proposal *Proposal) error {
+	l.Log.Info("Proposing output root", "output", proposal.Output.OutputRoot, "block", proposal.BlockRef)
 	data, err := l.ProposeL2OutputTxData(proposal)
 	if err != nil {
 		return err
@@ -299,17 +301,17 @@ func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, proposal *propo
 }
 
 // ProposeL2OutputTxData creates the transaction data for the ProposeL2Output function
-func (l *L2OutputSubmitter) ProposeL2OutputTxData(proposal *proposal) ([]byte, error) {
+func (l *L2OutputSubmitter) ProposeL2OutputTxData(proposal *Proposal) ([]byte, error) {
 	return proposeL2OutputTxData(l.ooABI, proposal)
 }
 
 // proposeL2OutputTxData creates the transaction data for the ProposeL2Output function
-func proposeL2OutputTxData(abi *abi.ABI, proposal *proposal) ([]byte, error) {
+func proposeL2OutputTxData(abi *abi.ABI, proposal *Proposal) ([]byte, error) {
 	return abi.Pack(
 		"proposeL2Output",
-		proposal.output.OutputRoot,
-		new(big.Int).SetUint64(proposal.blockRef.Number),
-		new(big.Int).SetUint64(proposal.blockRef.L1Origin.Number),
-		[]byte(proposal.output.Signature),
+		proposal.Output.OutputRoot,
+		new(big.Int).SetUint64(proposal.BlockRef.Number),
+		new(big.Int).SetUint64(proposal.BlockRef.L1Origin.Number),
+		[]byte(proposal.Output.Signature),
 	)
 }

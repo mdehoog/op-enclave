@@ -14,7 +14,7 @@ import (
 	"github.com/mdehoog/op-nitro/enclave"
 )
 
-type prover struct {
+type Prover struct {
 	config     *enclave.PerChainConfig
 	configHash common.Hash
 	l1         L1Client
@@ -23,18 +23,18 @@ type prover struct {
 	enclave    enclave.RPC
 }
 
-type proposal struct {
-	output   *enclave.Proposal
-	blockRef eth.L2BlockRef
+type Proposal struct {
+	Output   *enclave.Proposal
+	BlockRef eth.L2BlockRef
 }
 
-func newProver(
+func NewProver(
 	ctx context.Context,
 	l1 L1Client,
 	l2 L2Client,
 	rollup RollupClient,
 	enclav enclave.RPC,
-) (*prover, error) {
+) (*Prover, error) {
 	rollupConfig, err := rollup.RollupConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rollup config: %w", err)
@@ -45,7 +45,7 @@ func newProver(
 		return nil, fmt.Errorf("failed to hash rollup config: %w", err)
 	}
 
-	return &prover{
+	return &Prover{
 		config:     cfg,
 		configHash: configHash,
 		l1:         l1,
@@ -55,7 +55,7 @@ func newProver(
 	}, nil
 }
 
-func (o *prover) Generate(ctx context.Context, blockNumber uint64) (*proposal, bool, error) {
+func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, bool, error) {
 	blockCh := await(func() (*types.Block, error) {
 		return o.l2.BlockByNumber(ctx, new(big.Int).SetUint64(blockNumber))
 	}, func(err error) error {
@@ -149,24 +149,24 @@ func (o *prover) Generate(ctx context.Context, blockNumber uint64) (*proposal, b
 		return nil, false, fmt.Errorf("failed to execute enclave state transition: %w", err)
 	}
 	anyWithdrawals := block.Bloom().Test(predeploys.L2ToL1MessagePasserAddr.Bytes())
-	return &proposal{
-		output:   output,
-		blockRef: blockRef,
+	return &Proposal{
+		Output:   output,
+		BlockRef: blockRef,
 	}, anyWithdrawals, nil
 }
 
-func (o *prover) Aggregate(ctx context.Context, prevOutputRoot common.Hash, proposals []*proposal) (*proposal, error) {
+func (o *Prover) Aggregate(ctx context.Context, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
 	prop := make([]*enclave.Proposal, len(proposals))
 	for i, p := range proposals {
-		prop[i] = p.output
+		prop[i] = p.Output
 	}
 	output, err := o.enclave.Aggregate(ctx, o.configHash, prevOutputRoot, prop)
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate proposals: %w", err)
 	}
-	return &proposal{
-		output:   output,
-		blockRef: proposals[len(proposals)-1].blockRef,
+	return &Proposal{
+		Output:   output,
+		BlockRef: proposals[len(proposals)-1].BlockRef,
 	}, nil
 }
 
