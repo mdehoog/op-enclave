@@ -34,6 +34,7 @@ var (
 var requiredFlags = []cli.Flag{
 	L2EthRpcFlag,
 	EnclaveRpcFlag,
+	MinProposalIntervalFlag,
 }
 
 func init() {
