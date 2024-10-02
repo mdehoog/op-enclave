@@ -115,6 +115,7 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signer key: %w", err)
 	}
+	log.Info("Generated signer key", "address", crypto.PubkeyToAddress(signerKey.PublicKey).Hex())
 	return &Server{
 		pcr0:          pcr0,
 		signerKey:     signerKey,
@@ -317,6 +318,8 @@ func (s *Server) ExecuteStateless(
 	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
 		Transactions: blockTxs,
 	})
+	block.Header().Root = common.Hash{}
+	block.Header().ReceiptHash = common.Hash{}
 	stateRoot, _, err := core.ExecuteStateless(config.ChainConfig, block, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute stateless: %w", err)
