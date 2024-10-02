@@ -99,6 +99,9 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
     ///         Set as internal with a getter so that the struct is returned instead of a tuple.
     IResourceMetering.ResourceConfig internal _resourceConfig;
 
+    /// @notice The address of the proposer, address(0) if using the global proposer.
+    address public proposer;
+
     /// @notice Emitted when configuration is updated.
     /// @param version    SystemConfig version.
     /// @param updateType Type of update.
@@ -133,6 +136,7 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
                 maximumBaseFee: 0
             }),
             _batchInbox: address(0),
+            _proposer: address(0),
             _addresses: SystemConfig.Addresses({
                 l1CrossDomainMessenger: address(0),
                 l1ERC721Bridge: address(0),
@@ -155,6 +159,7 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
     /// @param _config            Initial ResourceConfig.
     /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
     ///                           canonical data.
+    /// @param _proposer          Proposer address (address(0) if using the global proposer).
     /// @param _addresses         Set of L1 contract addresses. These should be the proxies.
     function initialize(
         uint32 _basefeeScalar,
@@ -164,6 +169,7 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
         address _unsafeBlockSigner,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
+        address _proposer,
         SystemConfig.Addresses memory _addresses
     )
         public
@@ -188,6 +194,8 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
 
         _setResourceConfig(_config);
         require(_gasLimit >= minimumGasLimit(), "SystemConfig: gas limit too low");
+
+        proposer = _proposer;
     }
 
     /// @notice Returns the minimum L2 gas limit that can be safely set for the system to
@@ -437,5 +445,9 @@ contract SystemConfigOwnable is OwnableConfig, ISemver, IGasToken {
         );
 
         _resourceConfig = _config;
+    }
+
+    function setProposer(address _proposer) external onlyOwner {
+        proposer = _proposer;
     }
 }

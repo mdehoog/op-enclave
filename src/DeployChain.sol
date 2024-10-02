@@ -104,7 +104,8 @@ contract DeployChain {
         uint32 blobbasefeeScalar,
         uint64 gasLimit,
         address batcherAddress,
-        address unsafeBlockSigner
+        address unsafeBlockSigner,
+        address proposer
     ) external {
         DeployAddresses memory addresses = setupProxies(chainID);
         bytes32 genesisL1Hash = blockhash(uint256(genesisL1Number));
@@ -131,6 +132,7 @@ contract DeployChain {
             batcherAddress,
             unsafeBlockSigner,
             batchInbox,
+            proposer,
             hashes,
             addresses
         );
@@ -216,10 +218,12 @@ contract DeployChain {
         address batcherAddress,
         address unsafeBlockSigner,
         address batchInbox,
+        address proposer,
         Hashes memory hashes,
         DeployAddresses memory addresses
     ) internal {
         OutputOracle(addresses.l2OutputOracle).initialize(
+            SystemConfigOwnable(addresses.systemConfig),
             hashes.configHash,
             hashes.genesisOutputRoot
         );
@@ -232,6 +236,7 @@ contract DeployChain {
             _unsafeBlockSigner: unsafeBlockSigner,
             _config: Constants.DEFAULT_RESOURCE_CONFIG(),
             _batchInbox: batchInbox,
+            _proposer: proposer,
             _addresses: SystemConfig.Addresses({
                 l1CrossDomainMessenger: addresses.l1CrossDomainMessenger,
                 l1ERC721Bridge: addresses.l1ERC721Bridge,

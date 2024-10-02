@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { SystemConfigGlobal } from "./SystemConfigGlobal.sol";
+import { SystemConfigOwnable } from "./SystemConfigOwnable.sol";
 
 // Libraries
 import { Types } from "@eth-optimism-bedrock/src/libraries/Types.sol";
@@ -32,14 +33,17 @@ contract OutputOracle is Initializable, ISemver {
     /// @notice Maximum number of outputs to store in l2Outputs.
     uint256 public immutable maxOutputCount;
 
+    /// @notice Per chain system config contract.
+    SystemConfigOwnable public systemConfig;
+
+    /// @notice Hash of the serialized chain configuration.
+    bytes32 public configHash;
+
     /// @notice An array of L2 output proposals.
     Types.OutputProposal[] internal l2Outputs;
 
     /// @notice Pointer inside l2Outputs to the latest submitted output.
     uint256 public latestOutputIndex;
-
-    /// @notice Hash of the serialized chain configuration.
-    bytes32 public configHash;
 
     /// @notice Emitted when an output is proposed.
     /// @param outputRoot    The output root.
@@ -64,11 +68,16 @@ contract OutputOracle is Initializable, ISemver {
     ) {
         systemConfigGlobal = _systemConfigGlobal;
         maxOutputCount = _maxOutputCount;
-        initialize(0, 0);
+        initialize(SystemConfigOwnable(address(0)), 0, 0);
     }
 
     /// @notice Initializer.
-    function initialize(bytes32 _configHash, bytes32 _genesisOutputRoot) public initializer {
+    function initialize(
+        SystemConfigOwnable _systemConfig,
+        bytes32 _configHash,
+        bytes32 _genesisOutputRoot
+    ) public initializer {
+        systemConfig = _systemConfig;
         configHash = _configHash;
         l2Outputs.push(Types.OutputProposal({
             outputRoot: _genesisOutputRoot,
@@ -78,7 +87,8 @@ contract OutputOracle is Initializable, ISemver {
     }
 
     function proposer() public view returns (address) {
-        return systemConfigGlobal.proposer();
+        address _proposer = systemConfig.proposer();
+        return _proposer != address(0) ? _proposer : systemConfigGlobal.proposer();
     }
 
     /// @notice Accepts an outputRoot of the corresponding L2 block.

@@ -7,7 +7,7 @@ import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.
 
 contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
     /// @notice The address of the proposer.
-    address public proposer; // TODO allow this to be overridden in the per-chain system config
+    address public proposer;
 
     /// @notice Mapping of valid PCR0s attested from AWS Nitro.
     mapping(bytes32 => bool) public validPCR0s;

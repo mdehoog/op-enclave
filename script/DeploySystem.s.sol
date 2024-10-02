@@ -212,6 +212,7 @@ contract DeploySystem is Deploy {
                     cfg.p2pSequencerAddress(),
                     Constants.DEFAULT_RESOURCE_CONFIG(),
                     cfg.batchInboxAddress(),
+                    address(0),
                     SystemConfig.Addresses({
                         l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
                         l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
@@ -280,12 +281,13 @@ contract DeploySystem is Deploy {
         console.log("Upgrading and initializing OutputOracle proxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address l2OutputOracle = mustGetAddress("L2OutputOracle");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l2OutputOracleProxy),
             _implementation: l2OutputOracle,
             _innerCallData: abi.encodeCall(
-                OutputOracle.initialize, (0, 0)
+                OutputOracle.initialize, (SystemConfigOwnable(systemConfigProxy), 0, 0)
             )
         });
 
