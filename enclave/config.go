@@ -24,6 +24,7 @@ var addressType abi.Type
 var bytes32Type abi.Type
 
 var chainConfigTemplate params.ChainConfig
+var rollupConfigTemplate rollup.Config
 
 func init() {
 	uint256Type, _ = abi.NewType("uint256", "", nil)
@@ -33,8 +34,9 @@ func init() {
 
 	deployConfig := state.DefaultDeployConfig()
 	deployConfig.L2ChainID = 1
+
 	var err error
-	chainConfigTemplate, err = newChainConfigTemplate(&deployConfig)
+	chainConfigTemplate, rollupConfigTemplate, err = newChainConfigTemplate(&deployConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -45,15 +47,24 @@ type ChainConfig struct {
 	*PerChainConfig
 }
 
-func newChainConfigTemplate(cfg *genesis.DeployConfig) (params.ChainConfig, error) {
+func newChainConfigTemplate(cfg *genesis.DeployConfig) (params.ChainConfig, rollup.Config, error) {
 	l1StartHeader := &types.Header{
-		Time: 1,
+		Time:   1,
+		Number: big.NewInt(0),
 	}
 	g, err := genesis.NewL2Genesis(cfg, l1StartHeader)
 	if err != nil {
-		return params.ChainConfig{}, err
+		return params.ChainConfig{}, rollup.Config{}, err
 	}
-	return *g.Config, nil
+
+	cfg.OptimismPortalProxy = common.Address{1}
+	cfg.SystemConfigProxy = common.Address{1}
+	rollupConfig, err := cfg.RollupConfig(l1StartHeader, common.Hash{}, 0)
+	if err != nil {
+		return params.ChainConfig{}, rollup.Config{}, err
+	}
+
+	return *g.Config, *rollupConfig, nil
 }
 
 func NewChainConfig(cfg *PerChainConfig) *ChainConfig {
@@ -89,13 +100,13 @@ func FromRollupConfig(cfg *rollup.Config) *PerChainConfig {
 }
 
 func (p *PerChainConfig) ToRollupConfig() *rollup.Config {
-	return &rollup.Config{
-		L2ChainID:              p.ChainID,
-		Genesis:                p.Genesis,
-		BlockTime:              p.BlockTime,
-		DepositContractAddress: p.DepositContractAddress,
-		L1SystemConfigAddress:  p.L1SystemConfigAddress,
-	}
+	cfg := rollupConfigTemplate
+	cfg.L2ChainID = p.ChainID
+	cfg.Genesis = p.Genesis
+	cfg.BlockTime = p.BlockTime
+	cfg.DepositContractAddress = p.DepositContractAddress
+	cfg.L1SystemConfigAddress = p.L1SystemConfigAddress
+	return &cfg
 }
 
 func (p *PerChainConfig) ForceDefaults() {
