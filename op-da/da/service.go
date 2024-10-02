@@ -33,7 +33,7 @@ func ServiceFromCLIConfig(ctx context.Context, cfg *CLIConfig, l log.Logger) (cl
 		return nil, err
 	}
 
-	server := altda.NewDAServer("", cfg.Port, store, l, false)
+	server := altda.NewDAServer("", cfg.Port, store, l, true)
 
 	return &service{
 		server: server,
