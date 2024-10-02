@@ -248,6 +248,10 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		shouldPropose = shouldPropose || anyWithdrawals
 	}
 
+	if len(proposals) == 0 {
+		return nil, false, nil
+	}
+
 	lastProposal, err = l.prover.Aggregate(ctx, proposed.OutputRoot, proposals)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
