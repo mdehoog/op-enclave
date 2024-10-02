@@ -315,11 +315,11 @@ func (s *Server) ExecuteStateless(
 	}
 
 	expectedRoot := blockHeader.Root
+	blockHeader.Root = common.Hash{}
+	blockHeader.ReceiptHash = common.Hash{}
 	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
 		Transactions: blockTxs,
 	})
-	block.Header().Root = common.Hash{}
-	block.Header().ReceiptHash = common.Hash{}
 	stateRoot, _, err := core.ExecuteStateless(config.ChainConfig, block, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute stateless: %w", err)
