@@ -21,6 +21,12 @@ contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
         return "0.0.1";
     }
 
+    constructor() {
+        initialize({
+            _owner: address(0)
+        });
+    }
+
     function initialize(address _owner) public initializer {
         __Ownable_init();
         transferOwnership(_owner);
