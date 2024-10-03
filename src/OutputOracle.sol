@@ -101,7 +101,6 @@ contract OutputOracle is Initializable, ISemver {
         bytes calldata _signature
     )
         external
-        payable
     {
         require(msg.sender == proposer(), "OutputOracle: only the proposer address can propose new outputs");
 
