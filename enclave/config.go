@@ -1,13 +1,13 @@
 package enclave
 
 import (
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer/state"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -18,20 +18,10 @@ const (
 	version0 uint64 = 0
 )
 
-var uint256Type abi.Type
-var uint64Type abi.Type
-var addressType abi.Type
-var bytes32Type abi.Type
-
 var chainConfigTemplate params.ChainConfig
 var rollupConfigTemplate rollup.Config
 
 func init() {
-	uint256Type, _ = abi.NewType("uint256", "", nil)
-	uint64Type, _ = abi.NewType("uint64", "", nil)
-	addressType, _ = abi.NewType("address", "", nil)
-	bytes32Type, _ = abi.NewType("bytes32", "", nil)
-
 	deployConfig := state.DefaultDeployConfig()
 	deployConfig.L2ChainID = 1
 
@@ -115,37 +105,22 @@ func (p *PerChainConfig) ForceDefaults() {
 	p.Genesis.SystemConfig.Overhead = eth.Bytes32{}
 }
 
-func (p *PerChainConfig) Hash() (common.Hash, error) {
-	data, err := p.MarshalBinary()
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return crypto.Keccak256Hash(data), nil
+func (p *PerChainConfig) Hash() common.Hash {
+	return crypto.Keccak256Hash(p.MarshalBinary())
 }
 
-func (p *PerChainConfig) MarshalBinary() (data []byte, err error) {
-	args := abi.Arguments{
-		{Name: "version", Type: uint64Type},
-		{Name: "chainID", Type: uint256Type},
-		{Name: "genesisL1Hash", Type: bytes32Type},
-		{Name: "genesisL2Hash", Type: bytes32Type},
-		{Name: "genesisL2Time", Type: uint64Type},
-		{Name: "genesisBatcherAddress", Type: addressType},
-		{Name: "genesisScalar", Type: bytes32Type},
-		{Name: "genesisGasLimit", Type: uint64Type},
-		{Name: "depositContractAddress", Type: addressType},
-		{Name: "l1SystemConfigAddress", Type: addressType},
-	}
-	return args.Pack(
-		version0,
-		p.ChainID,
-		p.Genesis.L1.Hash,
-		p.Genesis.L2.Hash,
-		p.Genesis.L2Time,
-		p.Genesis.SystemConfig.BatcherAddr,
-		p.Genesis.SystemConfig.Scalar,
-		p.Genesis.SystemConfig.GasLimit,
-		p.DepositContractAddress,
-		p.L1SystemConfigAddress,
-	)
+func (p *PerChainConfig) MarshalBinary() (data []byte) {
+	data = binary.BigEndian.AppendUint64(data, version0)
+	chainIDBytes := p.ChainID.Bytes()
+	data = append(data, make([]byte, 32-len(chainIDBytes))...)
+	data = append(data, chainIDBytes...)
+	data = append(data, p.Genesis.L1.Hash[:]...)
+	data = append(data, p.Genesis.L2.Hash[:]...)
+	data = binary.BigEndian.AppendUint64(data, p.Genesis.L2Time)
+	data = append(data, p.Genesis.SystemConfig.BatcherAddr.Bytes()...)
+	data = append(data, p.Genesis.SystemConfig.Scalar[:]...)
+	data = binary.BigEndian.AppendUint64(data, p.Genesis.SystemConfig.GasLimit)
+	data = append(data, p.DepositContractAddress.Bytes()...)
+	data = append(data, p.L1SystemConfigAddress.Bytes()...)
+	return data
 }

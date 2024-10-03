@@ -39,14 +39,10 @@ func NewProver(
 		return nil, fmt.Errorf("failed to fetch rollup config: %w", err)
 	}
 	cfg := enclave.FromRollupConfig(rollupConfig)
-	configHash, err := cfg.Hash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash rollup config: %w", err)
-	}
 
 	return &Prover{
 		config:     cfg,
-		configHash: configHash,
+		configHash: cfg.Hash(),
 		l1:         l1,
 		l2:         l2,
 		enclave:    enclav,

@@ -337,11 +337,7 @@ func (s *Server) ExecuteStateless(
 
 	prevOutputRoot := outputRootV0(previousBlockHeader, prevMessageAccountHash)
 	outputRoot := outputRootV0(blockHeader, messageAccount.StorageHash)
-
-	configHash, err := config.Hash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal chain config: %w", err)
-	}
+	configHash := config.Hash()
 
 	data := append(configHash[:], l1OriginHash[:]...)
 	data = append(data, prevOutputRoot[:]...)
