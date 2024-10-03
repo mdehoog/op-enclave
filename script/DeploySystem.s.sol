@@ -35,6 +35,9 @@ contract DeploySystem is Deploy {
         setupSuperchain();
         console.log("set up superchain!");
 
+        setupSystemConfigGlobal();
+        console.log("set up system config global!");
+
         setupOpChain2();
         console.log("set up op chain!");
 
@@ -42,11 +45,20 @@ contract DeploySystem is Deploy {
         console.log("set chain deploy!");
     }
 
+    function setupSystemConfigGlobal() public {
+        console.log("Setting up SystemConfigGlobal");
+
+        deployERC1967Proxy("SystemConfigGlobalProxy");
+        deploySystemConfigGlobal();
+        initializeSystemConfigGlobal();
+    }
+
     function setupOpChain2() public {
         console.log("Deploying OP Chain");
 
         // Ensure that the requisite contracts are deployed
         mustGetAddress("SuperchainConfigProxy");
+        mustGetAddress("SystemConfigGlobalProxy");
         mustGetAddress("SystemOwnerSafe");
         mustGetAddress("AddressManager");
         mustGetAddress("ProxyAdmin");
@@ -67,7 +79,6 @@ contract DeploySystem is Deploy {
 
         deployERC1967Proxy("OptimismPortalProxy");
         deployERC1967Proxy("SystemConfigProxy");
-        deployERC1967Proxy("SystemConfigGlobalProxy");
         deployL1StandardBridgeProxy();
         deployL1CrossDomainMessengerProxy();
         deployERC1967Proxy("OptimismMintableERC20FactoryProxy");
@@ -88,7 +99,6 @@ contract DeploySystem is Deploy {
         deployL1CrossDomainMessenger();
         deployOptimismMintableERC20Factory();
         deploySystemConfigOwnable();
-        deploySystemConfigGlobal();
         deployL1StandardBridge();
         deployL1ERC721Bridge();
         deployPortal();
@@ -99,7 +109,6 @@ contract DeploySystem is Deploy {
         console.log("Initializing implementations");
         initializePortal();
         initializeSystemConfigOwnable();
-        initializeSystemConfigGlobal();
         initializeL1StandardBridge();
         initializeL1ERC721Bridge();
         initializeOptimismMintableERC20Factory();

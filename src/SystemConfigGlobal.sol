@@ -23,7 +23,7 @@ contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
 
     constructor() {
         initialize({
-            _owner: address(0)
+            _owner: address(0xdEaD)
         });
     }
 
