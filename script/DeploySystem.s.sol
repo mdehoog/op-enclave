@@ -146,7 +146,7 @@ contract DeploySystem is Deploy {
     }
 
     function deployOutputOracle() public broadcast returns (address addr_) {
-        SystemConfigGlobal systemConfigGlobal = SystemConfigGlobal(mustGetAddress("SystemConfigGlobal"));
+        SystemConfigGlobal systemConfigGlobal = SystemConfigGlobal(mustGetAddress("SystemConfigGlobalProxy"));
 
         console.log("Deploying L2OutputOracle implementation");
         OutputOracle oracle = new OutputOracle{ salt: _implSalt() }(
