@@ -17,6 +17,7 @@ import (
 )
 
 type L1Client interface {
+	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	BlockReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error)
 	CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error)
