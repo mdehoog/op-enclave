@@ -262,14 +262,16 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		}
 	}
 
-	latestBlockHeader, err := l.L2Client.HeaderByNumber(l.ctx, nil)
-	if err != nil {
-		log.Warn("Failed to get latest block header", "err", err)
-		shouldPropose = false
-	} else if lastProposal.BlockRef.Number <= latestBlockHeader.Number.Uint64()-256 {
-		// only submit onchain if within the blockhash window
-		log.Warn("Not submitting proposal, block is too old", "block", lastProposal.BlockRef.Number, "latest", latestBlockHeader.Number.Uint64())
-		shouldPropose = false
+	if shouldPropose {
+		latestBlockHeader, err := l.L2Client.HeaderByNumber(l.ctx, nil)
+		if err != nil {
+			log.Warn("Failed to get latest block header", "err", err)
+			shouldPropose = false
+		} else if lastProposal.BlockRef.Number <= latestBlockHeader.Number.Uint64()-256 {
+			// only submit onchain if within the blockhash window
+			log.Warn("Not submitting proposal, block is too old", "block", lastProposal.BlockRef.Number, "latest", latestBlockHeader.Number.Uint64())
+			shouldPropose = false
+		}
 	}
 
 	return lastProposal, shouldPropose, nil
