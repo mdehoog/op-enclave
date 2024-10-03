@@ -204,6 +204,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		return nil, false, fmt.Errorf("failed to get latest proposed block number from Oracle: %w", err)
 	}
 	proposedBlockNumber := proposed.L2BlockNumber.Uint64()
+	lastProposalBlockNumber := proposedBlockNumber
 
 	// purge reorged blocks
 	if lastProposal != nil {
@@ -218,7 +219,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 			// TODO rather than clearing all aggregated proposals, store snapshots and binary search back to the common ancestor
 			lastProposal = nil
 		} else {
-			proposedBlockNumber = lastProposalBlockRef.Number
+			lastProposalBlockNumber = lastProposalBlockRef.Number
 		}
 	}
 
@@ -239,25 +240,38 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		proposals = append(proposals, lastProposal)
 	}
 	shouldPropose := l.Cfg.MinProposalInterval > 0 && latestBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
-	for i := proposedBlockNumber + 1; i <= latestBlockNumber; i++ {
+	for i := lastProposalBlockNumber + 1; i <= latestBlockNumber; i++ {
 		proposal, anyWithdrawals, err := l.prover.Generate(ctx, i)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to generate proof for block %d: %w", i, err)
 		}
 		proposals = append(proposals, proposal)
 		shouldPropose = shouldPropose || anyWithdrawals
-		l.Log.Info("Generated proof for block", "block", i, "lastest", latestBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
+		l.Log.Info("Generated proof for block", "block", i, "latest", latestBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
 	}
 
 	if len(proposals) == 0 {
 		return nil, false, nil
 	}
 
-	log.Info("Aggregating proofs", "proposals", len(proposals))
-	lastProposal, err = l.prover.Aggregate(ctx, proposed.OutputRoot, proposals)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
+	if len(proposals) > 1 {
+		log.Info("Aggregating proofs", "proposals", len(proposals))
+		lastProposal, err = l.prover.Aggregate(ctx, proposed.OutputRoot, proposals)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
+		}
 	}
+
+	latestBlockHeader, err := l.L2Client.HeaderByNumber(l.ctx, nil)
+	if err != nil {
+		log.Warn("Failed to get latest block header", "err", err)
+		shouldPropose = false
+	} else if lastProposal.BlockRef.Number <= latestBlockHeader.Number.Uint64()-256 {
+		// only submit onchain if within the blockhash window
+		log.Warn("Not submitting proposal, block is too old", "block", lastProposal.BlockRef.Number, "latest", latestBlockHeader.Number.Uint64())
+		shouldPropose = false
+	}
+
 	return lastProposal, shouldPropose, nil
 }
 
@@ -272,8 +286,6 @@ func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, proposal *Proposa
 		return
 	}
 	l.Metr.RecordL2BlocksProposed(proposal.BlockRef)
-
-	// TODO purge witnesses here
 }
 
 // sendTransaction creates & sends transactions through the underlying transaction manager.
