@@ -319,11 +319,14 @@ func (l *L2OutputSubmitter) ProposeL2OutputTxData(proposal *Proposal) ([]byte, e
 
 // proposeL2OutputTxData creates the transaction data for the ProposeL2Output function
 func proposeL2OutputTxData(abi *abi.ABI, proposal *Proposal) ([]byte, error) {
+	sig := make([]byte, len(proposal.Output.Signature))
+	copy(sig, proposal.Output.Signature)
+	sig[64] += 27
 	return abi.Pack(
 		"proposeL2Output",
 		proposal.Output.OutputRoot,
 		new(big.Int).SetUint64(proposal.BlockRef.Number),
 		new(big.Int).SetUint64(proposal.BlockRef.L1Origin.Number),
-		[]byte(proposal.Output.Signature),
+		sig,
 	)
 }
