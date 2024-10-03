@@ -19,7 +19,6 @@ type Prover struct {
 	configHash common.Hash
 	l1         L1Client
 	l2         L2Client
-	rollup     RollupClient
 	enclave    enclave.RPC
 }
 
@@ -50,7 +49,6 @@ func NewProver(
 		configHash: configHash,
 		l1:         l1,
 		l2:         l2,
-		rollup:     rollup,
 		enclave:    enclav,
 	}, nil
 }
@@ -69,7 +67,7 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 	block := blockResult.value
 
 	witnessCh := await(func() ([]byte, error) {
-		return o.rollup.WitnessAtBlock(ctx, block.Hash())
+		return o.l2.ExecutionWitness(ctx, block.Hash())
 	}, func(err error) error {
 		return fmt.Errorf("failed to fetch witness: %w", err)
 	})

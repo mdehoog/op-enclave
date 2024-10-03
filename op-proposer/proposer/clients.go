@@ -30,6 +30,7 @@ type L2Client interface {
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
 	BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
+	ExecutionWitness(ctx context.Context, hash common.Hash) ([]byte, error)
 	Close()
 }
 
@@ -41,7 +42,6 @@ type Client interface {
 type RollupClient interface {
 	RollupConfig(ctx context.Context) (*rollup.Config, error)
 	SyncStatus(ctx context.Context) (*eth.SyncStatus, error)
-	WitnessAtBlock(ctx context.Context, hash common.Hash) ([]byte, error)
 }
 
 type ethClient struct {
@@ -51,9 +51,6 @@ type ethClient struct {
 	receiptsCache *caching.LRUCache[common.Hash, types.Receipts]
 	proofsCache   *caching.LRUCache[[common.AddressLength + common.HashLength]byte, *eth.AccountResult]
 }
-
-var _ L1Client = &ethClient{}
-var _ L2Client = &ethClient{}
 
 func NewClient(client *ethclient.Client, metrics caching.Metrics) Client {
 	cacheSize := 1000
@@ -158,6 +155,12 @@ func (e *ethClient) GetProof(ctx context.Context, address common.Address, hash c
 	return proof, nil
 }
 
+func (e *ethClient) ExecutionWitness(ctx context.Context, hash common.Hash) ([]byte, error) {
+	var buf hexutil.Bytes
+	err := e.client.Client().CallContext(ctx, &buf, "debug_executionWitness", hash)
+	return buf, err
+}
+
 func (e *ethClient) Close() {
 	e.client.Close()
 }
@@ -166,8 +169,6 @@ type rollupClient struct {
 	client       *rpc.Client
 	witnessCache *caching.LRUCache[common.Hash, []byte]
 }
-
-var _ RollupClient = &rollupClient{}
 
 func NewRollupClient(client *rpc.Client, metrics caching.Metrics) RollupClient {
 	cacheSize := 1000
@@ -193,17 +194,4 @@ func (w *rollupClient) SyncStatus(ctx context.Context) (*eth.SyncStatus, error) 
 		return nil, err
 	}
 	return &status, nil
-}
-
-func (w *rollupClient) WitnessAtBlock(ctx context.Context, hash common.Hash) ([]byte, error) {
-	if witness, ok := w.witnessCache.Get(hash); ok {
-		return witness, nil
-	}
-	var witness hexutil.Bytes
-	err := w.client.CallContext(ctx, &witness, "optimism_witnessAtBlock", hash)
-	if err != nil {
-		return nil, err
-	}
-	w.witnessCache.Add(hash, witness)
-	return witness, nil
 }

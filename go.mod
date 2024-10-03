@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/ethereum-optimism/optimism v1.9.1
-	github.com/ethereum/go-ethereum v1.14.8
+	github.com/ethereum/go-ethereum v1.14.11
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hf/nitrite v0.0.0-20211104000856-f9e0dcc73703
 	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
@@ -44,7 +44,7 @@ require (
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3 // indirect
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240910145426-b3905c89e8ac // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
-	github.com/ethereum/go-verkle v0.1.1-0.20240730162217-217a0b67275d // indirect
+	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.2.0 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
@@ -90,7 +90,7 @@ require (
 	github.com/status-im/keycard-go v0.2.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
-	github.com/supranational/blst v0.3.11 // indirect
+	github.com/supranational/blst v0.3.13 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
@@ -113,6 +113,6 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/mdehoog/op-geth v0.0.0-20241002023607-43dc294cc4c3
+replace github.com/ethereum/go-ethereum => github.com/mdehoog/op-geth v0.0.0-20241003075401-d8f4cde5a852
 
-replace github.com/ethereum-optimism/optimism => github.com/mdehoog/optimism v0.0.0-20241001203046-805d67718cf1
+replace github.com/ethereum-optimism/optimism => github.com/mdehoog/optimism v0.0.0-20241002221953-1c750e49427c
