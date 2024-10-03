@@ -260,9 +260,11 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
 		}
+	} else {
+		lastProposal = proposals[0]
 	}
 
-	if shouldPropose {
+	if lastProposalBlockNumber < latestBlockNumber {
 		latestL1BlockHeader, err := l.L1Client.HeaderByNumber(l.ctx, nil)
 		if err != nil {
 			log.Warn("Failed to get latest block header", "err", err)
