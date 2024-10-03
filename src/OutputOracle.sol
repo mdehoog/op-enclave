@@ -112,9 +112,12 @@ contract OutputOracle is Initializable, ISemver {
 
         require(_outputRoot != bytes32(0), "OutputOracle: L2 output proposal cannot be the zero hash");
 
+        bytes32 _blockHash = blockhash(_l1BlockNumber);
+        require(_blockHash != bytes32(0), "OutputOracle: blockhash not available");
+        
         bytes32 previousOutputRoot = l2Outputs[latestOutputIndex].outputRoot;
         address signer = ECDSA.recover(
-            keccak256(abi.encodePacked(configHash, blockhash(_l1BlockNumber), previousOutputRoot, _outputRoot)),
+            keccak256(abi.encodePacked(configHash, _blockHash, previousOutputRoot, _outputRoot)),
             _signature
         );
         require(systemConfigGlobal.validSigners(signer), "OutputOracle: invalid signature");
