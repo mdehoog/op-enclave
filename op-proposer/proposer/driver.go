@@ -230,7 +230,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 	}
 	latestBlockNumber := syncStatus.FinalizedL2.Number
 	if l.Cfg.AllowNonFinalized {
-		latestBlockNumber = syncStatus.SafeL2.Number
+		latestBlockNumber = syncStatus.PendingSafeL2.Number
 	}
 
 	// TODO implement proposal array limit (aggregate in chunks)
