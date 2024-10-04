@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
-	"github.com/mdehoog/op-nitro/op-da/da"
-	"github.com/mdehoog/op-nitro/op-da/flags"
+	"github.com/mdehoog/op-enclave/op-da/da"
+	"github.com/mdehoog/op-enclave/op-da/flags"
 
 	"github.com/urfave/cli/v2"
 

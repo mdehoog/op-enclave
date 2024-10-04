@@ -14,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/mdehoog/op-nitro/bindings"
-	"github.com/mdehoog/op-nitro/enclave"
+	"github.com/mdehoog/op-enclave/bindings"
+	"github.com/mdehoog/op-enclave/enclave"
 )
 
 var (

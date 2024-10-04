@@ -6,7 +6,7 @@ import (
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/mdehoog/op-nitro/enclave"
+	"github.com/mdehoog/op-enclave/enclave"
 	"github.com/mdlayher/vsock"
 )
 

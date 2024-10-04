@@ -8,7 +8,7 @@ import (
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	thisflags "github.com/mdehoog/op-nitro/op-proposer/flags"
+	thisflags "github.com/mdehoog/op-enclave/op-proposer/flags"
 	"github.com/urfave/cli/v2"
 )
 

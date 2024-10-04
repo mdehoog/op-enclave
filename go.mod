@@ -1,4 +1,4 @@
-module github.com/mdehoog/op-nitro
+module github.com/mdehoog/op-enclave
 
 go 1.22.1
 

@@ -1,7 +1,7 @@
 package da
 
 import (
-	"github.com/mdehoog/op-nitro/op-da/flags"
+	"github.com/mdehoog/op-enclave/op-da/flags"
 	"github.com/urfave/cli/v2"
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
