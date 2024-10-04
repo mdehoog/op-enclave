@@ -233,9 +233,9 @@ func (s *Server) ExecuteStateless(
 	cfg *PerChainConfig,
 	l1Origin *types.Header,
 	l1Receipts types.Receipts,
-	previousBlockTxs types.Transactions,
+	previousBlockTxs []hexutil.Bytes,
 	blockHeader *types.Header,
-	blockTxs types.Transactions,
+	blockTxs []hexutil.Bytes,
 	witness hexutil.Bytes,
 	messageAccount *eth.AccountResult,
 	prevMessageAccountHash common.Hash,
@@ -260,13 +260,32 @@ func (s *Server) ExecuteStateless(
 		return nil, errors.New("invalid parent hash")
 	}
 
-	previousTxHash := types.DeriveSha(previousBlockTxs, trie.NewStackTrie(nil))
+	unmarshalTxs := func(rlp []hexutil.Bytes) (types.Transactions, error) {
+		txs := make(types.Transactions, len(rlp))
+		for i, tx := range rlp {
+			txs[i] = new(types.Transaction)
+			if err := txs[i].UnmarshalBinary(tx); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal transaction: %w", err)
+			}
+		}
+		return txs, nil
+	}
+	previousTxs, err := unmarshalTxs(previousBlockTxs)
+	if err != nil {
+		return nil, err
+	}
+	txs, err := unmarshalTxs(blockTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	previousTxHash := types.DeriveSha(previousTxs, trie.NewStackTrie(nil))
 	if previousTxHash != previousBlockHeader.TxHash {
 		return nil, errors.New("invalid tx hash")
 	}
 
 	previousBlock := types.NewBlockWithHeader(previousBlockHeader).WithBody(types.Body{
-		Transactions: previousBlockTxs,
+		Transactions: previousTxs,
 	})
 
 	rollupConfig := config.ToRollupConfig()
@@ -280,7 +299,7 @@ func (s *Server) ExecuteStateless(
 	}
 
 	l1Fetcher := NewL1ReceiptsFetcher(l1OriginHash, l1Origin, l1Receipts)
-	l2Fetcher := NewL2SystemConfigFetcher(rollupConfig, previousBlockHash, previousBlockHeader, previousBlockTxs)
+	l2Fetcher := NewL2SystemConfigFetcher(rollupConfig, previousBlockHash, previousBlockHeader, previousTxs)
 	attributeBuilder := derive.NewFetchingAttributesBuilder(rollupConfig, l1Fetcher, l2Fetcher)
 	payload, err := attributeBuilder.PreparePayloadAttributes(context.Background(), l2Parent, eth.BlockID{
 		Hash:   l1OriginHash,
@@ -290,26 +309,22 @@ func (s *Server) ExecuteStateless(
 		return nil, fmt.Errorf("failed to prepare payload attributes: %w", err)
 	}
 
-	if blockTxs.Len() < len(payload.Transactions) {
+	if txs.Len() < len(payload.Transactions) {
 		return nil, errors.New("invalid transaction count")
 	}
 
 	for i, payloadTx := range payload.Transactions {
-		tx := blockTxs[i]
+		tx := txs[i]
 		if !tx.IsDepositTx() {
 			return nil, errors.New("invalid transaction type")
 		}
-		m, err := tx.MarshalBinary()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal transaction: %w", err)
-		}
-		if !bytes.Equal(m, payloadTx) {
+		if !bytes.Equal(blockTxs[i], payloadTx) {
 			return nil, errors.New("invalid deposit transaction")
 		}
 	}
 
 	// block must only contain deposit transactions if it is outside the sequencer drift
-	if blockTxs.Len() > len(payload.Transactions) &&
+	if txs.Len() > len(payload.Transactions) &&
 		blockHeader.Time > l1Origin.Time+maxSequencerDriftFjord {
 		return nil, errors.New("L1 origin is too old")
 	}
@@ -318,7 +333,7 @@ func (s *Server) ExecuteStateless(
 	blockHeader.Root = common.Hash{}
 	blockHeader.ReceiptHash = common.Hash{}
 	block := types.NewBlockWithHeader(blockHeader).WithBody(types.Body{
-		Transactions: blockTxs,
+		Transactions: txs,
 	})
 	blockHeader.Root, blockHeader.ReceiptHash, err = core.ExecuteStateless(config.ChainConfig, block, w)
 	if err != nil {

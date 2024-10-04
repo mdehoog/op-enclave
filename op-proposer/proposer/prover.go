@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mdehoog/op-nitro/enclave"
@@ -127,14 +128,33 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 		return nil, false, &multierror.Error{Errors: errors}
 	}
 
+	marshalTxs := func(txs types.Transactions) ([]hexutil.Bytes, error) {
+		rlp := make([]hexutil.Bytes, len(txs))
+		var err error
+		for i, tx := range txs {
+			if rlp[i], err = tx.MarshalBinary(); err != nil {
+				return nil, fmt.Errorf("failed to marshal transaction: %w", err)
+			}
+		}
+		return rlp, nil
+	}
+	previousTxs, err := marshalTxs(previousBlock.value.Transactions())
+	if err != nil {
+		return nil, false, err
+	}
+	txs, err := marshalTxs(block.Transactions())
+	if err != nil {
+		return nil, false, err
+	}
+
 	output, err := o.enclave.ExecuteStateless(
 		ctx,
 		o.config,
 		l1Origin.value,
 		l1Receipts.value,
-		previousBlock.value.Transactions(),
+		previousTxs,
 		block.Header(),
-		block.Transactions(),
+		txs,
 		witness.value,
 		messageAccount.value,
 		prevMessageAccount.value.StorageHash,
