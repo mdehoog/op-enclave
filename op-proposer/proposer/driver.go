@@ -239,7 +239,8 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 	if lastProposal != nil {
 		proposals = append(proposals, lastProposal)
 	}
-	shouldPropose := l.Cfg.MinProposalInterval > 0 && latestBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
+	shouldPropose := lastProposalBlockNumber < latestBlockNumber &&
+		l.Cfg.MinProposalInterval > 0 && latestBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
 	for i := lastProposalBlockNumber + 1; i <= latestBlockNumber; i++ {
 		proposal, anyWithdrawals, err := l.prover.Generate(ctx, i)
 		if err != nil {
@@ -264,7 +265,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		lastProposal = proposals[0]
 	}
 
-	if lastProposalBlockNumber < latestBlockNumber {
+	if shouldPropose {
 		latestL1BlockHeader, err := l.L1Client.HeaderByNumber(l.ctx, nil)
 		if err != nil {
 			log.Warn("Failed to get latest block header", "err", err)
