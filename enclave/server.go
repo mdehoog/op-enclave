@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
@@ -84,9 +85,12 @@ func NewServer() (*Server, error) {
 	var random io.Reader
 	var pcr0 []byte
 	session, err := nsm.OpenDefaultSession()
+	var signerKeyEnv string
 	if err != nil {
 		log.Warn("failed to open Nitro Secure Module session, running in local mode", "error", err)
 		random = rand.Reader
+		// only allow a signer key to be set in local mode
+		signerKeyEnv = os.Getenv("OP_ENCLAVE_SIGNER_KEY")
 	} else {
 		defer func() {
 			_ = session.Close()
@@ -114,6 +118,12 @@ func NewServer() (*Server, error) {
 	signerKey, err := ecdsa.GenerateKey(crypto.S256(), random)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signer key: %w", err)
+	}
+	if signerKeyEnv != "" {
+		signerKey, err = crypto.HexToECDSA(signerKeyEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse signer key: %w", err)
+		}
 	}
 	log.Info("Generated signer key", "address", crypto.PubkeyToAddress(signerKey.PublicKey).Hex())
 	return &Server{
