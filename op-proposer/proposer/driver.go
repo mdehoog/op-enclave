@@ -233,7 +233,7 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 		latestBlockNumber = syncStatus.SafeL2.Number
 	}
 
-	// TODO implement proposal array limit (aggregate in blocks)
+	// TODO implement proposal array limit (aggregate in chunks)
 	// TODO implement a pool of go-routines for parallel proof generation
 	var proposals []*Proposal
 	if lastProposal != nil {
