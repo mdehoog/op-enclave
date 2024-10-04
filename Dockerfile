@@ -13,10 +13,11 @@ RUN mkdir -p /build
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+COPY op-enclave/ op-enclave/
 
-RUN CGO_ENABLED=0 go build -o bin/enclave ./cmd/enclave
+RUN CGO_ENABLED=0 go build -o bin/enclave ./op-enclave/cmd/enclave
 
+COPY eif/ eif/
 COPY --from=bootstrap /build/out bootstrap
 RUN linuxkit build --format kernel+initrd --no-sbom --name init-ramdisk ./eif/init-ramdisk.yaml
 RUN linuxkit build --format kernel+initrd --no-sbom --name user-ramdisk ./eif/user-ramdisk.yaml

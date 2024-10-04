@@ -18,7 +18,7 @@ import (
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/mdehoog/op-enclave/enclave"
+	"github.com/mdehoog/op-enclave/op-enclave/enclave"
 	"github.com/mdehoog/op-enclave/op-proposer/metrics"
 
 	"github.com/ethereum/go-ethereum/common"

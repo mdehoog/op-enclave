@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mdehoog/op-enclave/bindings"
-	"github.com/mdehoog/op-enclave/enclave"
+	"github.com/mdehoog/op-enclave/op-enclave/enclave"
 )
 
 var (

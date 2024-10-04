@@ -12,19 +12,19 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/mdehoog/op-enclave/enclave"
+	enclave2 "github.com/mdehoog/op-enclave/op-enclave/enclave"
 )
 
 type Prover struct {
-	config     *enclave.PerChainConfig
+	config     *enclave2.PerChainConfig
 	configHash common.Hash
 	l1         L1Client
 	l2         L2Client
-	enclave    enclave.RPC
+	enclave    enclave2.RPC
 }
 
 type Proposal struct {
-	Output   *enclave.Proposal
+	Output   *enclave2.Proposal
 	BlockRef eth.L2BlockRef
 }
 
@@ -33,13 +33,13 @@ func NewProver(
 	l1 L1Client,
 	l2 L2Client,
 	rollup RollupClient,
-	enclav enclave.RPC,
+	enclav enclave2.RPC,
 ) (*Prover, error) {
 	rollupConfig, err := rollup.RollupConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rollup config: %w", err)
 	}
-	cfg := enclave.FromRollupConfig(rollupConfig)
+	cfg := enclave2.FromRollupConfig(rollupConfig)
 
 	return &Prover{
 		config:     cfg,
@@ -170,7 +170,7 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 }
 
 func (o *Prover) Aggregate(ctx context.Context, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
-	prop := make([]*enclave.Proposal, len(proposals))
+	prop := make([]*enclave2.Proposal, len(proposals))
 	for i, p := range proposals {
 		prop[i] = p.Output
 	}
