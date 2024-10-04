@@ -4,39 +4,41 @@ import (
 	"errors"
 
 	"github.com/ethereum-optimism/optimism/op-batcher/batcher"
+	"github.com/ethereum-optimism/optimism/op-batcher/metrics"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var ErrWithdrawalDetected = errors.New("withdrawal detected")
 
-func NewChannelOut(cfg batcher.ChannelConfig, rollupCfg *rollup.Config) (derive.ChannelOut, error) {
-	co, err := batcher.NewChannelOut(cfg, rollupCfg)
+func NewChannel(log log.Logger, metr metrics.Metricer, cfg batcher.ChannelConfig, rollupCfg *rollup.Config, latestL1OriginBlockNum uint64) (batcher.Channel, error) {
+	co, err := batcher.NewChannel(log, metr, cfg, rollupCfg, latestL1OriginBlockNum)
 	if err != nil {
 		return nil, err
 	}
-	return &channelOut{
-		ChannelOut: co,
+	return &channel{
+		Channel: co,
 	}, nil
 }
 
-type channelOut struct {
-	derive.ChannelOut
+type channel struct {
+	batcher.Channel
 	fullErr error
 }
 
-func (c *channelOut) AddBlock(config *rollup.Config, block *types.Block) (*derive.L1BlockInfo, error) {
+func (c *channel) AddBlock(block *types.Block) (*derive.L1BlockInfo, error) {
 	if block.Bloom().Test(predeploys.L2ToL1MessagePasserAddr.Bytes()) {
 		c.fullErr = ErrWithdrawalDetected
 	}
-	return c.ChannelOut.AddBlock(config, block)
+	return c.Channel.AddBlock(block)
 }
 
-func (c *channelOut) FullErr() error {
+func (c *channel) FullErr() error {
 	if c.fullErr != nil {
 		return c.fullErr
 	}
-	return c.ChannelOut.FullErr()
+	return c.Channel.FullErr()
 }

@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/ethereum-optimism/optimism v1.9.1
 	github.com/ethereum/go-ethereum v1.14.11
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hf/nitrite v0.0.0-20211104000856-f9e0dcc73703
 	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
@@ -54,7 +55,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-bexpr v0.1.11 // indirect
@@ -106,7 +106,7 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/term v0.24.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
+	golang.org/x/time v0.7.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -115,4 +115,4 @@ require (
 
 replace github.com/ethereum/go-ethereum => github.com/mdehoog/op-geth v0.0.0-20241003075401-d8f4cde5a852
 
-replace github.com/ethereum-optimism/optimism => github.com/mdehoog/optimism v0.0.0-20241002221953-1c750e49427c
+replace github.com/ethereum-optimism/optimism => github.com/mdehoog/optimism v0.0.0-20241004232359-14da93be19e5
