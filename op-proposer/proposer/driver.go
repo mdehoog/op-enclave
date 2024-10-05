@@ -55,6 +55,9 @@ type L2OutputSubmitter struct {
 	ooABI      *abi.ABI
 
 	prover *Prover
+
+	blocksBatched      map[uint64]struct{}
+	blocksBatchedMutex sync.Mutex
 }
 
 // NewL2OutputSubmitter creates a new L2 Output Submitter
@@ -109,6 +112,8 @@ func newL2OOSubmitter(ctx context.Context, cancel context.CancelFunc, setup Driv
 		ooContract: ooContract,
 		ooABI:      parsed,
 		prover:     prover,
+
+		blocksBatched: make(map[uint64]struct{}),
 	}, nil
 }
 
@@ -155,6 +160,43 @@ func (l *L2OutputSubmitter) StopL2OutputSubmitting() error {
 
 	l.Log.Info("Proposer stopped")
 	return nil
+}
+
+func (l *L2OutputSubmitter) BlocksBatched(numbers []uint64) error {
+	l.blocksBatchedMutex.Lock()
+	defer l.blocksBatchedMutex.Unlock()
+	for _, number := range numbers {
+		l.blocksBatched[number] = struct{}{}
+	}
+	return nil
+}
+
+func (l *L2OutputSubmitter) LatestBlockBatched(ctx context.Context) (uint64, error) {
+	syncStatus, err := l.RollupClient.SyncStatus(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get sync status from Rollup: %w", err)
+	}
+	batched := syncStatus.FinalizedL2.Number
+	if l.Cfg.AllowNonFinalized {
+		batched = syncStatus.PendingSafeL2.Number
+
+		l.blocksBatchedMutex.Lock()
+		defer l.blocksBatchedMutex.Unlock()
+
+		for number := range l.blocksBatched {
+			if number <= batched {
+				delete(l.blocksBatched, number)
+			}
+		}
+
+		// iterate through the batched blocks to find the last contiguous batched block number
+		for i := batched + 1; ; i++ {
+			if _, ok := l.blocksBatched[i]; !ok {
+				return i - 1, nil
+			}
+		}
+	}
+	return batched, nil
 }
 
 // loop is responsible for creating & submitting the next outputs
@@ -224,31 +266,28 @@ func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastPropos
 	}
 
 	// generate new proposals up to the latest block
-	syncStatus, err := l.RollupClient.SyncStatus(ctx)
+	batchedBlockNumber, err := l.LatestBlockBatched(ctx)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to get sync status from Rollup: %w", err)
-	}
-	latestBlockNumber := syncStatus.FinalizedL2.Number
-	if l.Cfg.AllowNonFinalized {
-		latestBlockNumber = syncStatus.PendingSafeL2.Number
+		return nil, false, err
 	}
 
 	// TODO implement proposal array limit (aggregate in chunks)
 	// TODO implement a pool of go-routines for parallel proof generation
+	// TODO generate proofs for unsafe blocks ahead of time
 	var proposals []*Proposal
 	if lastProposal != nil {
 		proposals = append(proposals, lastProposal)
 	}
-	shouldPropose := lastProposalBlockNumber < latestBlockNumber &&
-		l.Cfg.MinProposalInterval > 0 && latestBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
-	for i := lastProposalBlockNumber + 1; i <= latestBlockNumber; i++ {
+	shouldPropose := lastProposalBlockNumber < batchedBlockNumber &&
+		l.Cfg.MinProposalInterval > 0 && batchedBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
+	for i := lastProposalBlockNumber + 1; i <= batchedBlockNumber; i++ {
 		proposal, anyWithdrawals, err := l.prover.Generate(ctx, i)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to generate proof for block %d: %w", i, err)
 		}
 		proposals = append(proposals, proposal)
 		shouldPropose = shouldPropose || anyWithdrawals
-		l.Log.Info("Generated proof for block", "block", i, "latest", latestBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
+		l.Log.Info("Generated proof for block", "block", i, "batched", batchedBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
 	}
 
 	if len(proposals) == 0 {

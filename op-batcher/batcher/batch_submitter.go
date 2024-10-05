@@ -9,6 +9,8 @@ import (
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum/go-ethereum/rpc"
+	thisflags "github.com/mdehoog/op-enclave/op-batcher/flags"
 	"github.com/urfave/cli/v2"
 )
 
@@ -26,11 +28,18 @@ func Main(version string) cliapp.LifecycleAction {
 
 		l := oplog.NewLogger(oplog.AppOut(cliCtx), cfg.LogConfig)
 		oplog.SetGlobalLogHandler(l.Handler())
-		opservice.ValidateEnvVars(flags.EnvVarPrefix, flags.Flags, l)
+		opservice.ValidateEnvVars(flags.EnvVarPrefix, thisflags.Flags, l)
+
+		proposerClient, err := rpc.DialContext(cliCtx.Context, cliCtx.String(thisflags.ProposerRpcFlag.Name))
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to Proposer: %w", err)
+		}
 
 		l.Info("Initializing Batch Submitter")
-		channelFactoryOpt := func(service *batcher.BatcherService, cfg *batcher.CLIConfig) {
-			service.ChannelFactory = NewChannel
+		channelFactoryOpt := func(setup *batcher.DriverSetup) {
+			metricer := NewMetricer(setup.Metr, setup.Log, proposerClient)
+			setup.Metr = metricer
+			setup.ChannelOutFactory = ChannelOutFactory(metricer)
 		}
 		return batcher.BatcherServiceFromCLIConfig(cliCtx.Context, version, cfg, l, channelFactoryOpt)
 	}
