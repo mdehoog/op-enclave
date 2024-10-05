@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-proposer/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -54,10 +56,8 @@ type L2OutputSubmitter struct {
 	ooContract OOContract
 	ooABI      *abi.ABI
 
-	prover *Prover
-
-	blocksBatched      map[uint64]struct{}
-	blocksBatchedMutex sync.Mutex
+	prover  *Prover
+	pending []*Proposal
 }
 
 // NewL2OutputSubmitter creates a new L2 Output Submitter
@@ -112,8 +112,6 @@ func newL2OOSubmitter(ctx context.Context, cancel context.CancelFunc, setup Driv
 		ooContract: ooContract,
 		ooABI:      parsed,
 		prover:     prover,
-
-		blocksBatched: make(map[uint64]struct{}),
 	}, nil
 }
 
@@ -162,41 +160,30 @@ func (l *L2OutputSubmitter) StopL2OutputSubmitting() error {
 	return nil
 }
 
-func (l *L2OutputSubmitter) BlocksBatched(numbers []uint64) error {
-	l.blocksBatchedMutex.Lock()
-	defer l.blocksBatchedMutex.Unlock()
-	for _, number := range numbers {
-		l.blocksBatched[number] = struct{}{}
-	}
-	return nil
-}
-
-func (l *L2OutputSubmitter) LatestBlockBatched(ctx context.Context) (uint64, error) {
+func (l *L2OutputSubmitter) latestSafeBlock(ctx context.Context) (eth.L2BlockRef, error) {
 	syncStatus, err := l.RollupClient.SyncStatus(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get sync status from Rollup: %w", err)
+		return eth.L2BlockRef{}, fmt.Errorf("failed to get sync status from Rollup: %w", err)
 	}
-	batched := syncStatus.FinalizedL2.Number
+	batched := syncStatus.FinalizedL2
 	if l.Cfg.AllowNonFinalized {
-		batched = syncStatus.PendingSafeL2.Number
-
-		l.blocksBatchedMutex.Lock()
-		defer l.blocksBatchedMutex.Unlock()
-
-		for number := range l.blocksBatched {
-			if number <= batched {
-				delete(l.blocksBatched, number)
-			}
-		}
-
-		// iterate through the batched blocks to find the last contiguous batched block number
-		for i := batched + 1; ; i++ {
-			if _, ok := l.blocksBatched[i]; !ok {
-				return i - 1, nil
-			}
-		}
+		batched = syncStatus.SafeL2
 	}
 	return batched, nil
+}
+
+func l2BlockRefToBlockID(ref eth.L2BlockRef) eth.BlockID {
+	return eth.BlockID{
+		Number: ref.Number,
+		Hash:   ref.Hash,
+	}
+}
+
+func headerToBlockID(header *types.Header) eth.BlockID {
+	return eth.BlockID{
+		Number: header.Number.Uint64(),
+		Hash:   header.Hash(),
+	}
 }
 
 // loop is responsible for creating & submitting the next outputs
@@ -207,7 +194,6 @@ func (l *L2OutputSubmitter) loop() {
 	ctx := l.ctx
 	ticker := time.NewTicker(l.Cfg.PollInterval)
 	defer ticker.Stop()
-	var lastProposal *Proposal
 	for {
 		select {
 		case <-ticker.C:
@@ -218,16 +204,22 @@ func (l *L2OutputSubmitter) loop() {
 			default:
 			}
 
-			// A note on retrying: the outer ticker already runs on a short
-			// poll interval, which has a default value of 6 seconds. So no
-			// retry logic is needed around output fetching here.
-			proposal, shouldPropose, err := l.generateNextProposal(ctx, lastProposal)
-			lastProposal = proposal
+			latestOutput, err := l.ooContract.LatestL2Output(&bind.CallOpts{Context: ctx})
+			if err != nil {
+				log.Warn("Failed to get latest proposed block number from Oracle", "err", err)
+				continue
+			}
+
+			if err = l.generateOutputs(ctx, latestOutput); err != nil {
+				l.Log.Warn("Error generating output", "err", err)
+				continue
+			}
+
+			proposal, shouldPropose, err := l.nextOutput(ctx, latestOutput)
 			if err != nil {
 				l.Log.Warn("Error getting output", "err", err)
 				continue
 			} else if !shouldPropose {
-				// debug logging already in Fetch(DGF|L2OO)Output
 				continue
 			}
 
@@ -238,85 +230,107 @@ func (l *L2OutputSubmitter) loop() {
 	}
 }
 
-func (l *L2OutputSubmitter) generateNextProposal(ctx context.Context, lastProposal *Proposal) (*Proposal, bool, error) {
-	proposed, err := l.ooContract.LatestL2Output(&bind.CallOpts{
-		Context: ctx,
-	})
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to get latest proposed block number from Oracle: %w", err)
-	}
-	proposedBlockNumber := proposed.L2BlockNumber.Uint64()
-	lastProposalBlockNumber := proposedBlockNumber
+func (l *L2OutputSubmitter) IsRunning() bool {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	return l.running
+}
 
-	// purge reorged blocks
-	if lastProposal != nil {
-		lastProposalBlockRef := lastProposal.BlockRef
-		proposedHeader, err := l.L2Client.HeaderByNumber(ctx, new(big.Int).SetUint64(lastProposalBlockRef.Number))
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to get header for block %d: %w", lastProposalBlockRef.Number, err)
-		}
-		if lastProposalBlockRef.Hash != proposedHeader.Hash() {
-			l.Log.Warn("Last proposal block hash does not match the L2 block hash, possible reorg",
-				"last_proposal", lastProposalBlockRef.Hash, "l2_block", proposedHeader.Hash())
-			// TODO rather than clearing all aggregated proposals, store snapshots and binary search back to the common ancestor
-			lastProposal = nil
+func (l *L2OutputSubmitter) generateOutputs(ctx context.Context, latestOutput bindings.TypesOutputProposal) error {
+	latestOutputNumber := latestOutput.L2BlockNumber.Uint64()
+
+	// clear out already submitted outputs
+	for len(l.pending) > 0 && l.pending[0].From.Number-1 < latestOutputNumber {
+		l.pending = l.pending[1:]
+	}
+
+	if len(l.pending) > 0 {
+		if l.pending[0].From.Number-1 != latestOutputNumber {
+			l.Log.Warn("Pending outputs are not contiguous with the latest output",
+				"latest", latestOutputNumber,
+				"pending", l.pending[0].From.Number-1)
+			l.pending = nil
 		} else {
-			lastProposalBlockNumber = lastProposalBlockRef.Number
+			latestOutputNumber = l.pending[len(l.pending)-1].To.Number
 		}
 	}
 
-	// generate new proposals up to the latest block
-	batchedBlockNumber, err := l.LatestBlockBatched(ctx)
+	for i := latestOutputNumber + 1; ; i++ {
+		block, err := l.L2Client.BlockByNumber(ctx, new(big.Int).SetUint64(i))
+		if errors.Is(err, ethereum.NotFound) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get block %d: %w", i, err)
+		}
+
+		proposal, err := l.prover.Generate(ctx, block)
+		if err != nil {
+			return fmt.Errorf("failed to generate proof for block %d: %w", i, err)
+		}
+
+		l.Log.Info("Generated proof for block",
+			"block", l2BlockRefToBlockID(proposal.To), "l1Origin", proposal.To.L1Origin,
+			"withdrawals", proposal.Withdrawals, "output", proposal.Output.OutputRoot.String())
+		l.pending = append(l.pending, proposal)
+	}
+}
+
+func (l *L2OutputSubmitter) nextOutput(ctx context.Context, latestOutput bindings.TypesOutputProposal) (*Proposal, bool, error) {
+	// aggregate proposals up to the latest safe block
+	latestSafe, err := l.latestSafeBlock(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// TODO implement proposal array limit (aggregate in chunks)
-	// TODO implement a pool of go-routines for parallel proof generation
-	// TODO generate proofs for unsafe blocks ahead of time
 	var proposals []*Proposal
-	if lastProposal != nil {
-		proposals = append(proposals, lastProposal)
-	}
-	shouldPropose := lastProposalBlockNumber < batchedBlockNumber &&
-		l.Cfg.MinProposalInterval > 0 && batchedBlockNumber-proposedBlockNumber > l.Cfg.MinProposalInterval
-	for i := lastProposalBlockNumber + 1; i <= batchedBlockNumber; i++ {
-		proposal, anyWithdrawals, err := l.prover.Generate(ctx, i)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to generate proof for block %d: %w", i, err)
+	for _, proposal := range l.pending {
+		if proposal.To.Number > latestSafe.Number {
+			break
 		}
 		proposals = append(proposals, proposal)
-		shouldPropose = shouldPropose || anyWithdrawals
-		l.Log.Info("Generated proof for block", "block", i, "batched", batchedBlockNumber, "shouldPropose", shouldPropose, "output", proposal.Output.OutputRoot.String())
 	}
-
 	if len(proposals) == 0 {
 		return nil, false, nil
 	}
+	l.pending = l.pending[len(proposals):]
 
+	proposal := proposals[0]
 	if len(proposals) > 1 {
-		log.Info("Aggregating proofs", "proposals", len(proposals))
-		lastProposal, err = l.prover.Aggregate(ctx, proposed.OutputRoot, proposals)
+		proposal, err = l.prover.Aggregate(ctx, latestOutput.OutputRoot, proposals)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to aggregate proofs: %w", err)
 		}
-	} else {
-		lastProposal = proposals[0]
+		l.Log.Info("Aggregated proofs",
+			"output", proposal.Output.OutputRoot.String(), "blocks", len(proposals),
+			"withdrawals", proposal.Withdrawals, "from", proposal.From.Number, "to", proposal.To.Number)
+	}
+	l.pending = append([]*Proposal{proposal}, l.pending...)
+
+	if proposal.To.Hash != latestSafe.Hash {
+		l.Log.Warn("Aggregated output does not match the latest batched block, possible reorg",
+			"aggregated", l2BlockRefToBlockID(proposal.To), "latestSafe", latestSafe)
+		l.pending = nil
+		return nil, false, nil
 	}
 
+	shouldPropose := proposal.Withdrawals ||
+		(l.Cfg.MinProposalInterval > 0 &&
+			latestSafe.Number-latestOutput.L2BlockNumber.Uint64() > l.Cfg.MinProposalInterval)
+
 	if shouldPropose {
-		latestL1BlockHeader, err := l.L1Client.HeaderByNumber(l.ctx, nil)
+		latestL1Number, err := l.L1Client.BlockNumber(l.ctx)
 		if err != nil {
 			log.Warn("Failed to get latest block header", "err", err)
 			shouldPropose = false
-		} else if lastProposal.BlockRef.L1Origin.Number <= latestL1BlockHeader.Number.Uint64()-256 {
-			// only submit onchain if within the blockhash window
-			log.Warn("Not submitting proposal, block is too old", "l1Origin", lastProposal.BlockRef.L1Origin.Number, "l1Latest", latestL1BlockHeader.Number.Uint64())
+		} else if proposal.To.L1Origin.Number <= latestL1Number-(256-10) {
+			// only submit onchain if within the blockhash window - 10
+			log.Warn("Not submitting proposal, block is too old", "l1Origin", proposal.To.L1Origin.Number, "l1Latest", latestL1Number)
 			shouldPropose = false
 		}
 	}
 
-	return lastProposal, shouldPropose, nil
+	return proposal, shouldPropose, nil
 }
 
 func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, proposal *Proposal) {
@@ -326,15 +340,15 @@ func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, proposal *Proposa
 	if err := l.sendTransaction(cCtx, proposal); err != nil {
 		l.Log.Error("Failed to send proposal transaction",
 			"err", err,
-			"block", proposal.BlockRef)
+			"block", l2BlockRefToBlockID(proposal.To))
 		return
 	}
-	l.Metr.RecordL2BlocksProposed(proposal.BlockRef)
+	l.Metr.RecordL2BlocksProposed(proposal.To)
 }
 
 // sendTransaction creates & sends transactions through the underlying transaction manager.
 func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, proposal *Proposal) error {
-	l.Log.Info("Proposing output root", "output", proposal.Output.OutputRoot, "block", proposal.BlockRef)
+	l.Log.Info("Proposing output root", "output", proposal.Output.OutputRoot, "block", l2BlockRefToBlockID(proposal.To))
 	data, err := l.ProposeL2OutputTxData(proposal)
 	if err != nil {
 		return err
@@ -369,8 +383,8 @@ func proposeL2OutputTxData(abi *abi.ABI, proposal *Proposal) ([]byte, error) {
 	return abi.Pack(
 		"proposeL2Output",
 		proposal.Output.OutputRoot,
-		new(big.Int).SetUint64(proposal.BlockRef.Number),
-		new(big.Int).SetUint64(proposal.BlockRef.L1Origin.Number),
+		new(big.Int).SetUint64(proposal.To.Number),
+		new(big.Int).SetUint64(proposal.To.L1Origin.Number),
 		sig,
 	)
 }

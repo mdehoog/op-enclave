@@ -17,14 +17,12 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/mdehoog/op-enclave/op-enclave/enclave"
-	"github.com/mdehoog/op-enclave/op-proposer/metrics"
-	thisrpc "github.com/mdehoog/op-enclave/op-proposer/proposer/rpc"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	gethrpc "github.com/ethereum/go-ethereum/rpc"
+	"github.com/mdehoog/op-enclave/op-enclave/enclave"
+	"github.com/mdehoog/op-enclave/op-proposer/metrics"
 )
 
 var ErrAlreadyStopped = errors.New("already stopped")
@@ -243,7 +241,6 @@ func (ps *ProposerService) initRPCServer(cfg *CLIConfig) error {
 	if cfg.RPCConfig.EnableAdmin {
 		adminAPI := rpc.NewAdminAPI(ps.driver, ps.Metrics, ps.Log)
 		server.AddAPI(rpc.GetAdminAPI(adminAPI))
-		server.AddAPI(thisrpc.NewAdminAPI(ps.driver, ps.Metrics, ps.Log))
 		server.AddAPI(ps.TxManager.API())
 		ps.Log.Info("Admin RPC enabled")
 	}

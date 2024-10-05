@@ -3,7 +3,6 @@ package proposer
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -12,20 +11,22 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashicorp/go-multierror"
-	enclave2 "github.com/mdehoog/op-enclave/op-enclave/enclave"
+	"github.com/mdehoog/op-enclave/op-enclave/enclave"
 )
 
 type Prover struct {
-	config     *enclave2.PerChainConfig
+	config     *enclave.PerChainConfig
 	configHash common.Hash
 	l1         L1Client
 	l2         L2Client
-	enclave    enclave2.RPC
+	enclave    enclave.RPC
 }
 
 type Proposal struct {
-	Output   *enclave2.Proposal
-	BlockRef eth.L2BlockRef
+	Output      *enclave.Proposal
+	From        eth.L2BlockRef
+	To          eth.L2BlockRef
+	Withdrawals bool
 }
 
 func NewProver(
@@ -33,13 +34,13 @@ func NewProver(
 	l1 L1Client,
 	l2 L2Client,
 	rollup RollupClient,
-	enclav enclave2.RPC,
+	enclav enclave.RPC,
 ) (*Prover, error) {
 	rollupConfig, err := rollup.RollupConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch rollup config: %w", err)
 	}
-	cfg := enclave2.FromRollupConfig(rollupConfig)
+	cfg := enclave.FromRollupConfig(rollupConfig)
 
 	return &Prover{
 		config:     cfg,
@@ -50,19 +51,7 @@ func NewProver(
 	}, nil
 }
 
-func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, bool, error) {
-	blockCh := await(func() (*types.Block, error) {
-		return o.l2.BlockByNumber(ctx, new(big.Int).SetUint64(blockNumber))
-	}, func(err error) error {
-		return fmt.Errorf("failed to fetch L2 block: %w", err)
-	})
-
-	blockResult := <-blockCh
-	if blockResult.err != nil {
-		return nil, false, blockResult.err
-	}
-	block := blockResult.value
-
+func (o *Prover) Generate(ctx context.Context, block *types.Block) (*Proposal, error) {
 	witnessCh := await(func() ([]byte, error) {
 		return o.l2.ExecutionWitness(ctx, block.Hash())
 	}, func(err error) error {
@@ -89,7 +78,7 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 
 	blockRef, err := derive.L2BlockToBlockRef(o.config.ToRollupConfig(), block)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to derive block ref from L2 block: %w", err)
+		return nil, fmt.Errorf("failed to derive block ref from L2 block: %w", err)
 	}
 
 	l1OriginCh := await(func() (*types.Header, error) {
@@ -125,7 +114,7 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 	errors = appendNonNil(errors, prevMessageAccount.err)
 
 	if len(errors) > 0 {
-		return nil, false, &multierror.Error{Errors: errors}
+		return nil, &multierror.Error{Errors: errors}
 	}
 
 	marshalTxs := func(txs types.Transactions) ([]hexutil.Bytes, error) {
@@ -140,11 +129,11 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 	}
 	previousTxs, err := marshalTxs(previousBlock.value.Transactions())
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	txs, err := marshalTxs(block.Transactions())
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	output, err := o.enclave.ExecuteStateless(
@@ -160,27 +149,38 @@ func (o *Prover) Generate(ctx context.Context, blockNumber uint64) (*Proposal, b
 		prevMessageAccount.value.StorageHash,
 	)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to execute enclave state transition: %w", err)
+		return nil, fmt.Errorf("failed to execute enclave state transition: %w", err)
 	}
-	anyWithdrawals := block.Bloom().Test(predeploys.L2ToL1MessagePasserAddr.Bytes())
 	return &Proposal{
-		Output:   output,
-		BlockRef: blockRef,
-	}, anyWithdrawals, nil
+		Output:      output,
+		From:        blockRef,
+		To:          blockRef,
+		Withdrawals: block.Bloom().Test(predeploys.L2ToL1MessagePasserAddr.Bytes()),
+	}, nil
 }
 
 func (o *Prover) Aggregate(ctx context.Context, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
-	prop := make([]*enclave2.Proposal, len(proposals))
+	if len(proposals) == 0 {
+		return nil, fmt.Errorf("no proposals to aggregate")
+	}
+	if len(proposals) == 1 {
+		return proposals[0], nil
+	}
+	prop := make([]*enclave.Proposal, len(proposals))
+	withdrawals := false
 	for i, p := range proposals {
 		prop[i] = p.Output
+		withdrawals = withdrawals || p.Withdrawals
 	}
 	output, err := o.enclave.Aggregate(ctx, o.configHash, prevOutputRoot, prop)
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate proposals: %w", err)
 	}
 	return &Proposal{
-		Output:   output,
-		BlockRef: proposals[len(proposals)-1].BlockRef,
+		Output:      output,
+		From:        proposals[0].From,
+		To:          proposals[len(proposals)-1].To,
+		Withdrawals: withdrawals,
 	}, nil
 }
 

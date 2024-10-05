@@ -383,6 +383,13 @@ func (s *Server) ExecuteStateless(
 }
 
 func (s *Server) Aggregate(ctx context.Context, configHash common.Hash, prevOutputRoot common.Hash, proposals []*Proposal) (*Proposal, error) {
+	if len(proposals) == 0 {
+		return nil, errors.New("no proposals")
+	}
+	if len(proposals) == 1 {
+		return proposals[0], nil
+	}
+
 	outputRoot := prevOutputRoot
 	var l1OriginHash common.Hash
 	for _, p := range proposals {

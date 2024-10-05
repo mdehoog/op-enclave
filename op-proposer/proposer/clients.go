@@ -17,6 +17,7 @@ import (
 )
 
 type L1Client interface {
+	BlockNumber(ctx context.Context) (uint64, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	BlockReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error)
@@ -71,6 +72,10 @@ func (e *ethClient) ChainConfig(ctx context.Context) (*params.ChainConfig, error
 		return nil, err
 	}
 	return &config, nil
+}
+
+func (e *ethClient) BlockNumber(ctx context.Context) (uint64, error) {
+	return e.client.BlockNumber(ctx)
 }
 
 func (e *ethClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
