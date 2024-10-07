@@ -1,0 +1,60 @@
+services:
+  op-geth:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    ports:
+      - "8545:8545"
+    command: [ "bash", "./entrypoint-geth.sh" ]
+    volumes:
+      - ./data/geth:/data
+    env_file:
+      - .env
+  op-node:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    depends_on:
+      - op-geth
+      - op-da
+    ports:
+      - "7545:8545"
+    command: [ "bash", "./entrypoint-node.sh" ]
+    env_file:
+      - .env
+  op-da:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    command: [ "bash", "./entrypoint-da.sh" ]
+    volumes:
+      - ./data/da:/data
+    env_file:
+      - .env
+  op-batcher:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    depends_on:
+      - op-geth
+      - op-node
+    command: [ "bash", "./entrypoint-batcher.sh" ]
+    env_file:
+      - .env
+  op-proposer:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    depends_on:
+      - op-geth
+      - op-node
+    command: [ "bash", "./entrypoint-proposer.sh" ]
+    env_file:
+      - .env
+  op-enclave:
+    build:
+      context: ..
+      dockerfile: /Dockerfile
+    command: [ "bash", "./entrypoint-enclave.sh" ]
+    env_file:
+      - .env

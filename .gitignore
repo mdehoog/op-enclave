@@ -3,3 +3,7 @@
 /out/
 /cache/
 /broadcast/
+/testnet/data/
+/testnet/.env
+/deployments/*-*-*.json
+/bin/
