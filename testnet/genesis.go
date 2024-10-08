@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -301,6 +302,16 @@ func Main(cliCtx *cli.Context) error {
 	l2Genesis, err := genesis.NewL2Genesis(&config, l1Header)
 	if err != nil {
 		return fmt.Errorf("failed to create L2 genesis: %w", err)
+	}
+
+	log.Info("Building Optimism contracts")
+	cmd := exec.Command("forge", "build")
+	cmd.Dir = "./lib/optimism/packages/contracts-bedrock"
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to build contracts: %w", err)
 	}
 
 	foundryArtifacts := foundry.OpenArtifactsDir("./lib/optimism/packages/contracts-bedrock/forge-artifacts")
