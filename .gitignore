@@ -2,7 +2,6 @@
 .DS_Store
 /out/
 /cache/
-/broadcast/
 /testnet/data/
 /testnet/.env
 /deployments/*-*-*.json

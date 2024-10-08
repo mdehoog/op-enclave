@@ -22,7 +22,7 @@ testnet: guard-L1_URL guard-DEPLOY_PRIVATE_KEY
 
 .PHONY: verify
 verify:
-	deploy=broadcast/DeploySystem.s.sol/84532/deploy-latest.json; \
+	deploy=broadcast/DeploySystem.s.sol/84532/run-1727993682.json; \
 	addresses=$$(jq -r '.transactions[] | select(.transactionType=="CREATE" or .transactionType=="CREATE2") | .contractAddress' $$deploy); \
 	for address in $$addresses; do \
 		name=$$(jq -r --arg address "$$address" '.transactions[] | select((.transactionType=="CREATE" or .transactionType=="CREATE2") and .contractAddress==$$address) | .contractName' $$deploy); \
