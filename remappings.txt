@@ -9,4 +9,5 @@ src/L1/=lib/optimism/packages/contracts-bedrock/src/L1/
 src/L2/=lib/optimism/packages/contracts-bedrock/src/L2/
 src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/
 src/universal/=lib/optimism/packages/contracts-bedrock/src/universal/
+src/vendor/=lib/optimism/packages/contracts-bedrock/src/vendor/
 scripts/=lib/optimism/packages/contracts-bedrock/scripts/
