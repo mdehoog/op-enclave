@@ -3,10 +3,12 @@
 [profile.default]
 src = "src"
 out = "out"
+broadcast = "broadcast"
 libs = ["lib"]
 optimizer = true
 optimizer_runs = 999999
 
+extra_output_files = ['abi']
 bytecode_hash = 'none'
 ast = true
 gas_limit = 9223372036854775807
