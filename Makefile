@@ -32,4 +32,3 @@ verify:
 		constructor_args=$$(cast abi-encode "constructor($$constructor)" $$arguments); \
 		forge verify-contract --watch --verifier-url https://api-sepolia.basescan.org/api --constructor-args $$constructor_args $$address $$name ; \
 	done
-

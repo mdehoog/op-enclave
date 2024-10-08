@@ -6,6 +6,7 @@
 @rari-capital/solmate/=lib/optimism/packages/contracts-bedrock/lib/solmate/
 src/cannon/interfaces/=lib/optimism/packages/contracts-bedrock/src/cannon/interfaces/
 src/L1/=lib/optimism/packages/contracts-bedrock/src/L1/
+src/L2/=lib/optimism/packages/contracts-bedrock/src/L2/
 src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/
 src/universal/=lib/optimism/packages/contracts-bedrock/src/universal/
 scripts/=lib/optimism/packages/contracts-bedrock/scripts/
