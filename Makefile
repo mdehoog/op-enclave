@@ -15,8 +15,8 @@ deploy: guard-IMPL_SALT guard-DEPLOY_CONFIG_PATH guard-DEPLOY_PRIVATE_KEY guard-
 	@forge script DeploySystem --sig deploy --rpc-url $(RPC_URL) \
 		--private-key $(DEPLOY_PRIVATE_KEY) --broadcast
 
-.PHONY: testnet guard-L1_URL guard-DEPLOY_PRIVATE_KEY
-testnet:
+.PHONY: testnet
+testnet: guard-L1_URL guard-DEPLOY_PRIVATE_KEY
 	DEPLOY_CHAIN_ADDRESS=${DEPLOY_CHAIN_ADDRESS:-$(jq -r ".DeployChain" deployments/84532-deploy.json)} \
 		go run ./testnet
 
