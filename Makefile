@@ -17,7 +17,7 @@ deploy: guard-IMPL_SALT guard-DEPLOY_CONFIG_PATH guard-DEPLOY_PRIVATE_KEY guard-
 
 .PHONY: testnet
 testnet: guard-L1_URL guard-DEPLOY_PRIVATE_KEY
-	DEPLOY_CHAIN_ADDRESS=${DEPLOY_CHAIN_ADDRESS:-$(jq -r ".DeployChain" deployments/84532-deploy.json)} \
+	DEPLOY_CHAIN_ADDRESS=$${DEPLOY_CHAIN_ADDRESS:-$$(jq -r ".DeployChain" deployments/84532-deploy.json)} \
 		go run ./testnet
 
 .PHONY: verify
