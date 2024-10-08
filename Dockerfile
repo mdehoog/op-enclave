@@ -10,12 +10,12 @@ RUN go install github.com/linuxkit/linuxkit/src/cmd/linuxkit@270fd1c5aa1986977b3
 WORKDIR /build
 RUN mkdir -p /build
 
-COPY go.mod go.sum ./
-RUN go mod download
+COPY op-enclave/go.mod op-enclave/go.sum op-enclave/
+RUN cd op-enclave && go mod download
 
 COPY op-enclave/ op-enclave/
 
-RUN CGO_ENABLED=0 go build -o bin/enclave ./op-enclave/cmd/enclave
+RUN cd op-enclave && CGO_ENABLED=0 go build -o ../bin/enclave ./cmd/enclave
 
 COPY eif/ eif/
 COPY --from=bootstrap /build/out bootstrap
