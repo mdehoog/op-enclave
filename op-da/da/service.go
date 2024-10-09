@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"sync/atomic"
 
@@ -70,6 +71,10 @@ func newStore(cfg *CLIConfig) (altda.KVStore, error) {
 		split := strings.SplitN(u.Path, "/", 2)
 		return NewS3store(split[0], split[1]), nil
 	case "file":
+		err = os.MkdirAll(u.Path, os.FileMode(0755))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create directory: %w", err)
+		}
 		return NewFilestore(u.Path), nil
 	default:
 		return nil, fmt.Errorf("unsupported DA scheme: %s", u.Scheme)
