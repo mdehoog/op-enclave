@@ -256,6 +256,7 @@ func Main(cliCtx *cli.Context) error {
 	config.EnableGovernance = false
 	config.L1BlockTime = 2
 	config.L2BlockTime = 1
+	config.SequencerWindowSize = 3600 * 6 // to account for L2 block time
 	config.BatchInboxAddress = batchInboxAddress
 	config.FinalizationPeriodSeconds = 1
 	config.UseAltDA = true
