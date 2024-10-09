@@ -339,6 +339,7 @@ func Main(cliCtx *cli.Context) error {
 	}
 
 	l2Genesis.Alloc = allocs.Accounts
+	addPredeploys(l2Genesis.Alloc)
 	genesisBlock := l2Genesis.ToBlock()
 
 	genesisJSON, err := json.MarshalIndent(l2Genesis, "", "  ")
