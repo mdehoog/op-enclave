@@ -26,12 +26,13 @@ import (
 )
 
 func main() {
-	chainID := 660380098
+	chainID := 1709200504
 	deployedJSON := fmt.Sprintf("deployments/84532-%d-deployed.json", chainID)
 	ecKey, err := crypto.HexToECDSA(os.Getenv("PRIVATE_KEY"))
 	if err != nil {
 		log.Fatalf("Failed to parse private key from PRIVATE_KEY envvar: %v", err)
 	}
+	from := crypto.PubkeyToAddress(ecKey.PublicKey)
 
 	var deployed bindings.DeployChainDeploy
 	deployedBytes, err := os.ReadFile(deployedJSON)
@@ -50,9 +51,10 @@ func main() {
 	l2Messenger := predeploys.L2CrossDomainMessengerAddr
 
 	deposit := true
-	withdraw := false
-	withdrawDeposit := true
+	withdraw := true
+	withdrawDeposit := false
 	proveWithdrawal := true
+	redeposit := false
 
 	withdrawalTxHash := common.HexToHash("0x")
 	withdrawalTxBlock := uint64(0)
@@ -101,31 +103,61 @@ func main() {
 		}
 	}
 
+	ReportBalances(ctx, l1, l2, from)
+
+	amountInEth := 0.01
+	amountInGwei := int64(amountInEth * 1000000000)
+	value := big.NewInt(0).Mul(big.NewInt(amountInGwei), big.NewInt(1000000000))
+	start := time.Now()
 	if deposit {
-		receipt := Deposit(ctx, l1, transactOpsFactory(false), l1Bridge)
+		receipt := Deposit(ctx, l1, transactOpsFactory(false), l1Bridge, value)
 		AwaitDeposit(ctx, l2, receipt, portalAddr)
+		total := time.Since(start)
+		fmt.Printf("Deposit E2E took: %s\n\n", total)
+		ReportBalances(ctx, l1, l2, from)
 	}
 
-	balance, _ := l2.BalanceAt(ctx, crypto.PubkeyToAddress(ecKey.PublicKey), nil)
-	fmt.Printf("L2 balance: %s\n", balance)
+	start = time.Now()
 	if withdrawDeposit {
 		withdrawalTxHash, withdrawalTxBlock = WithdrawDeposit(ctx, l1, l2, transactOpsFactory, l1Bridge, l2Messenger)
 	} else if withdraw {
-		withdrawalTxHash, withdrawalTxBlock = Withdraw(ctx, l2, transactOpsFactory(true), l2Bridge)
+		value, withdrawalTxHash, withdrawalTxBlock = Withdraw(ctx, l2, transactOpsFactory(true), l2Bridge)
 	}
 
 	if proveWithdrawal {
 		receipt := ProveWithdrawal(ctx, l1, l2, l2g, transactOpsFactory(false), outputOracle, portal, withdrawalTxHash, withdrawalTxBlock)
-		AwaitDeposit(ctx, l2, receipt, portalAddr)
+		if withdrawDeposit {
+			AwaitDeposit(ctx, l2, receipt, portalAddr)
+		}
+		total := time.Since(start)
+		fmt.Printf("Withdrawal E2E took: %s\n\n", total)
+		ReportBalances(ctx, l1, l2, from)
 	}
-	fmt.Printf("L2 balance: %s\n", balance)
+
+	if redeposit {
+		receipt := Deposit(ctx, l1, transactOpsFactory(false), l1Bridge, value)
+		AwaitDeposit(ctx, l2, receipt, portalAddr)
+		ReportBalances(ctx, l1, l2, from)
+	}
 
 	cancel()
 }
 
-func Deposit(ctx context.Context, l1 *ethclient.Client, opts *bind.TransactOpts, l1Bridge common.Address) *types.Receipt {
-	amountInEth := 0.01
-	receipt, err := send(ctx, l1, l1Bridge, opts, nil, amountInEth, false)
+var l1Balance, l2Balance *big.Int
+
+func ReportBalances(ctx context.Context, l1, l2 *ethclient.Client, addr common.Address) {
+	l1b, _ := l1.BalanceAt(ctx, addr, nil)
+	l2b, _ := l2.BalanceAt(ctx, addr, nil)
+	if l1Balance != nil {
+		fmt.Printf("Balance change of %s on L2: %s, L3: %s\n\n", addr, new(big.Int).Sub(l1b, l1Balance), new(big.Int).Sub(l2b, l2Balance))
+	}
+	l1Balance = l1b
+	l2Balance = l2b
+}
+
+func Deposit(ctx context.Context, l1 *ethclient.Client, opts *bind.TransactOpts, l1Bridge common.Address, value *big.Int) *types.Receipt {
+	fmt.Printf("Depositing %s wei to the L3\n", value)
+	_, receipt, err := send(ctx, l1, l1Bridge, opts, nil, value, false)
 	if err != nil {
 		log.Fatalf("Error sending deposit: %v", err)
 	}
@@ -149,14 +181,16 @@ func AwaitDeposit(ctx context.Context, l2 *ethclient.Client, receipt *types.Rece
 	fmt.Printf("Deposit confirmed: %s\n", receipt.TxHash)
 }
 
-func Withdraw(ctx context.Context, l2 *ethclient.Client, opts *bind.TransactOpts, l2Bridge common.Address) (withdrawalTxHash common.Hash, withdrawalTxBlock uint64) {
-	receipt, err := send(ctx, l2, l2Bridge, opts, nil, 0, true)
+func Withdraw(ctx context.Context, l2 *ethclient.Client, opts *bind.TransactOpts, l2Bridge common.Address) (value *big.Int, withdrawalTxHash common.Hash, withdrawalTxBlock uint64) {
+	fmt.Printf("Withdrawing entire balance from L3\n")
+	tx, receipt, err := send(ctx, l2, l2Bridge, opts, nil, nil, true)
 	if err != nil {
 		log.Fatalf("Error sending withdrawal: %v", err)
 	}
+	value = tx.Value()
 	withdrawalTxHash = receipt.TxHash
 	withdrawalTxBlock = receipt.BlockNumber.Uint64()
-	fmt.Printf("Withdrawal sent: %s (block %d)\n", withdrawalTxHash, withdrawalTxBlock)
+	fmt.Printf("Withdrew %s wei: %s (block %d)\n", tx.Value(), withdrawalTxHash, withdrawalTxBlock)
 	return
 }
 
@@ -184,7 +218,7 @@ func WithdrawDeposit(ctx context.Context, l1, l2 *ethclient.Client, optsFactory 
 	}
 
 	opts = optsFactory(true)
-	receipt, err := send(ctx, l2, l2Messenger, opts, tx.Data(), 0, true)
+	_, receipt, err := send(ctx, l2, l2Messenger, opts, tx.Data(), nil, true)
 	if err != nil {
 		log.Fatalf("Error sending withdrawal: %v", err)
 	}
@@ -195,7 +229,7 @@ func WithdrawDeposit(ctx context.Context, l1, l2 *ethclient.Client, optsFactory 
 }
 
 func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethclient.Client, opts *bind.TransactOpts, outputOracle *bindings.OutputOracle, portal *bindings.Portal, withdrawalTxHash common.Hash, withdrawalTxBlock uint64) *types.Receipt {
-	fmt.Printf("Waiting for TEE proof of block %d...\n", withdrawalTxBlock)
+	fmt.Printf("Waiting for TEE proof of block %d... ", withdrawalTxBlock)
 	var l2OutputBlock *big.Int
 	for {
 		var err error
@@ -208,6 +242,7 @@ func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethcli
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
+	fmt.Println("done")
 
 	header, err := l2.HeaderByNumber(ctx, l2OutputBlock)
 	if err != nil {
@@ -256,28 +291,28 @@ func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethcli
 	return receipt
 }
 
-func send(ctx context.Context, client *ethclient.Client, to common.Address, opts *bind.TransactOpts, data []byte, amountInEth float64, sendFullBalance bool) (*types.Receipt, error) {
-	amountInGwei := int64(amountInEth * 1000000000)
-	opts.Value = big.NewInt(0).Mul(big.NewInt(amountInGwei), big.NewInt(1000000000))
-
-	fmt.Printf("From address: %s\n", opts.From)
+func send(ctx context.Context, client *ethclient.Client, to common.Address, opts *bind.TransactOpts, data []byte, value *big.Int, sendFullBalance bool) (*types.Transaction, *types.Receipt, error) {
+	if value == nil {
+		value = big.NewInt(0)
+	}
+	opts.Value = value
 
 	binding := bind.NewBoundContract(to, abi.ABI{}, client, client, client)
 
 	if sendFullBalance {
 		balance, err := client.BalanceAt(ctx, opts.From, nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		opts.NoSend = true
-		opts.Value = big.NewInt(1)
+		opts.Value = new(big.Int).Div(balance, big.NewInt(2))
 		tx, err := binding.RawTransact(opts, data)
 
 		totalGas := new(big.Int).Sub(tx.Cost(), opts.Value)
 		txBin, err := tx.MarshalBinary()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		gasPriceOracle, _ := bindings2.NewGasPriceOracleCaller(predeploys.GasPriceOracleAddr, client)
 		if gasPriceOracle != nil {
@@ -290,17 +325,21 @@ func send(ctx context.Context, client *ethclient.Client, to common.Address, opts
 		opts.Value.Sub(balance, totalGas)
 		opts.GasFeeCap = tx.GasFeeCap()
 		opts.GasTipCap = tx.GasTipCap()
+		opts.GasLimit = tx.Gas()
 		opts.NoSend = false
 		opts.Nonce = new(big.Int).SetUint64(tx.Nonce())
 	}
 
 	tx, err := binding.RawTransact(opts, data)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	receipt, err := waitForConfirmation(ctx, client, tx.Hash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return receipt, nil
+	return tx, receipt, nil
 }
 
 func waitForConfirmation(ctx context.Context, client *ethclient.Client, tx common.Hash) (*types.Receipt, error) {
