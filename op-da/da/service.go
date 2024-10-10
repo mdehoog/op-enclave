@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 	"sync/atomic"
 
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
@@ -68,8 +67,7 @@ func newStore(cfg *CLIConfig) (altda.KVStore, error) {
 	}
 	switch u.Scheme {
 	case "s3":
-		split := strings.SplitN(u.Path, "/", 2)
-		return NewS3store(split[0], split[1]), nil
+		return NewS3store(u.Host, u.Path), nil
 	case "file":
 		err = os.MkdirAll(u.Path, os.FileMode(0755))
 		if err != nil {
