@@ -149,10 +149,5 @@ func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethcli
 	if err != nil {
 		return nil, err
 	}
-	receipt, err := withdrawals.WaitForReceipt(ctx, l1, tx.Hash(), pollInterval)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("Message proved: %s\n", receipt.TxHash)
-	return receipt, nil
+	return withdrawals.WaitForReceipt(ctx, l1, tx.Hash(), pollInterval)
 }
