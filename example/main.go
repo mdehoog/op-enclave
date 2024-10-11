@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -12,9 +11,7 @@ import (
 
 	bindings2 "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-node/withdrawals"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,7 +20,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/mdehoog/op-enclave/bindings"
+	"github.com/mdehoog/op-enclave/op-withdrawer/withdrawals"
 )
+
+const pollInterval = 250 * time.Millisecond
 
 func main() {
 	chainID := 1709200504
@@ -57,7 +57,7 @@ func main() {
 	redeposit := false
 
 	withdrawalTxHash := common.HexToHash("0x")
-	withdrawalTxBlock := uint64(0)
+	withdrawalTxBlock := big.NewInt(0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	l1, err := ethclient.DialContext(ctx, "https://sepolia.base.org")
@@ -174,14 +174,14 @@ func AwaitDeposit(ctx context.Context, l2 *ethclient.Client, receipt *types.Rece
 		log.Fatalf("Expected 1 deposit, got %d", len(deposits))
 	}
 
-	receipt, err = waitForConfirmation(ctx, l2, types.NewTx(deposits[0]).Hash())
+	receipt, err = withdrawals.WaitForReceipt(ctx, l2, types.NewTx(deposits[0]).Hash(), pollInterval)
 	if err != nil {
 		log.Fatalf("Error waiting for confirmation: %v", err)
 	}
 	fmt.Printf("Deposit confirmed: %s\n", receipt.TxHash)
 }
 
-func Withdraw(ctx context.Context, l2 *ethclient.Client, opts *bind.TransactOpts, l2Bridge common.Address) (value *big.Int, withdrawalTxHash common.Hash, withdrawalTxBlock uint64) {
+func Withdraw(ctx context.Context, l2 *ethclient.Client, opts *bind.TransactOpts, l2Bridge common.Address) (value *big.Int, withdrawalTxHash common.Hash, withdrawalTxBlock *big.Int) {
 	fmt.Printf("Withdrawing entire balance from L3\n")
 	tx, receipt, err := send(ctx, l2, l2Bridge, opts, nil, nil, true)
 	if err != nil {
@@ -189,12 +189,12 @@ func Withdraw(ctx context.Context, l2 *ethclient.Client, opts *bind.TransactOpts
 	}
 	value = tx.Value()
 	withdrawalTxHash = receipt.TxHash
-	withdrawalTxBlock = receipt.BlockNumber.Uint64()
+	withdrawalTxBlock = receipt.BlockNumber
 	fmt.Printf("Withdrew %s wei: %s (block %d)\n", tx.Value(), withdrawalTxHash, withdrawalTxBlock)
 	return
 }
 
-func WithdrawDeposit(ctx context.Context, l1, l2 *ethclient.Client, optsFactory func(l2 bool) *bind.TransactOpts, l1Bridge, l2Messenger common.Address) (withdrawalTxHash common.Hash, withdrawalTxBlock uint64) {
+func WithdrawDeposit(ctx context.Context, l1, l2 *ethclient.Client, optsFactory func(l2 bool) *bind.TransactOpts, l1Bridge, l2Messenger common.Address) (withdrawalTxHash common.Hash, withdrawalTxBlock *big.Int) {
 	bridge, err := bindings2.NewL1StandardBridge(l1Bridge, l1)
 	if err != nil {
 		log.Fatalf("Error binding to L1 bridge: %v", err)
@@ -223,67 +223,21 @@ func WithdrawDeposit(ctx context.Context, l1, l2 *ethclient.Client, optsFactory 
 		log.Fatalf("Error sending withdrawal: %v", err)
 	}
 	withdrawalTxHash = receipt.TxHash
-	withdrawalTxBlock = receipt.BlockNumber.Uint64()
+	withdrawalTxBlock = receipt.BlockNumber
 	fmt.Printf("Deposit withdrawal sent: %s (block %d)\n", withdrawalTxHash, withdrawalTxBlock)
 	return
 }
 
-func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethclient.Client, opts *bind.TransactOpts, outputOracle *bindings.OutputOracle, portal *bindings.Portal, withdrawalTxHash common.Hash, withdrawalTxBlock uint64) *types.Receipt {
+func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethclient.Client, opts *bind.TransactOpts, outputOracle *bindings.OutputOracle, portal *bindings.Portal, withdrawalTxHash common.Hash, withdrawalTxBlock *big.Int) *types.Receipt {
 	fmt.Printf("Waiting for TEE proof of block %d... ", withdrawalTxBlock)
-	var l2OutputBlock *big.Int
-	for {
-		var err error
-		l2OutputBlock, err = outputOracle.LatestBlockNumber(&bind.CallOpts{})
-		if err != nil {
-			log.Fatalf("Error getting latest L2 output block: %v", err)
-		}
-		if l2OutputBlock.Uint64() >= withdrawalTxBlock {
-			break
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
+	l2OutputBlock, err := withdrawals.WaitForOutputBlock(ctx, outputOracle, withdrawalTxBlock, pollInterval)
 	fmt.Println("done")
 
-	header, err := l2.HeaderByNumber(ctx, l2OutputBlock)
-	if err != nil {
-		log.Fatalf("Error getting L2 header: %v", err)
-	}
-	l2OutputIndex, err := outputOracle.GetL2OutputIndexAfter(&bind.CallOpts{}, header.Number)
-	if err != nil {
-		log.Fatalf("Error getting L2 output index: %v", err)
-	}
-	l2BlockNumber := header.Number
-
-	withdrawal, err := withdrawals.ProveWithdrawalParametersForBlock(ctx, l2g, l2, l2, withdrawalTxHash, l2BlockNumber, l2OutputIndex)
-	if err != nil {
-		log.Fatalf("Error proving withdrawal parameters: %v", err)
-	}
-
-	outputRootProof := bindings.TypesOutputRootProof{
-		Version:                  withdrawal.OutputRootProof.Version,
-		StateRoot:                withdrawal.OutputRootProof.StateRoot,
-		MessagePasserStorageRoot: withdrawal.OutputRootProof.MessagePasserStorageRoot,
-		LatestBlockhash:          withdrawal.OutputRootProof.LatestBlockhash,
-	}
-
-	tx, err := portal.ProveAndFinalizeWithdrawalTransaction(
-		opts,
-		bindings.TypesWithdrawalTransaction{
-			Nonce:    withdrawal.Nonce,
-			Sender:   withdrawal.Sender,
-			Target:   withdrawal.Target,
-			Value:    withdrawal.Value,
-			GasLimit: withdrawal.GasLimit,
-			Data:     withdrawal.Data,
-		},
-		withdrawal.L2OutputIndex,
-		outputRootProof,
-		withdrawal.WithdrawalProof,
-	)
+	tx, err := withdrawals.ProveAndFinalizeWithdrawal(ctx, l2g, l2, opts, outputOracle, portal, withdrawalTxHash, l2OutputBlock)
 	if err != nil {
 		log.Fatalf("Error proving and finalizing withdrawal: %v", err)
 	}
-	receipt, err := waitForConfirmation(ctx, l1, tx.Hash())
+	receipt, err := withdrawals.WaitForReceipt(ctx, l1, tx.Hash(), pollInterval)
 	if err != nil {
 		log.Fatalf("Error waiting for confirmation: %v", err)
 	}
@@ -335,30 +289,11 @@ func send(ctx context.Context, client *ethclient.Client, to common.Address, opts
 		return nil, nil, err
 	}
 
-	receipt, err := waitForConfirmation(ctx, client, tx.Hash())
+	receipt, err := withdrawals.WaitForReceipt(ctx, client, tx.Hash(), pollInterval)
 	if err != nil {
 		return nil, nil, err
 	}
 	return tx, receipt, nil
-}
-
-func waitForConfirmation(ctx context.Context, client *ethclient.Client, tx common.Hash) (*types.Receipt, error) {
-	for {
-		receipt, err := client.TransactionReceipt(ctx, tx)
-		if errors.Is(err, ethereum.NotFound) {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-time.After(1 * time.Second):
-			}
-		} else if err != nil {
-			return nil, err
-		} else if receipt.Status != types.ReceiptStatusSuccessful {
-			return nil, errors.New("unsuccessful receipt status")
-		} else {
-			return receipt, nil
-		}
-	}
 }
 
 func calculateBatchInbox(chainID *big.Int) common.Address {
