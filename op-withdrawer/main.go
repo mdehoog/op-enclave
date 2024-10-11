@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -41,12 +41,6 @@ var (
 		EnvVars:  []string{"PORTAL_ADDRESS"},
 		Required: true,
 	}
-	WithdrawalTxHashFlag = &cli.StringFlag{
-		Name:     "withdrawal-tx-hash",
-		Usage:    "Hash of the withdrawal transaction",
-		EnvVars:  []string{"WITHDRAWAL_TX_HASH"},
-		Required: true,
-	}
 	PrivateKeyFlag = &cli.StringFlag{
 		Name:     "private-key",
 		Usage:    "Private key to sign the transaction",
@@ -59,7 +53,6 @@ var Flags = []cli.Flag{
 	L1URLFlag,
 	L2URLFlag,
 	PortalAddressFlag,
-	WithdrawalTxHashFlag,
 	PrivateKeyFlag,
 }
 
@@ -67,10 +60,28 @@ func main() {
 	oplog.SetupDefaults()
 
 	app := cli.NewApp()
-	app.Flags = cliapp.ProtectFlags(Flags)
 	app.Name = "withdrawer"
 	app.Usage = "Withdraws funds from L2 to L1"
-	app.Action = Main
+	app.Action = func(c *cli.Context) error {
+		return cli.ShowAppHelp(c)
+	}
+	app.Commands = []*cli.Command{
+		{
+			Name:   "depositHash",
+			Usage:  "Calculate L2 deposit hash from L1 deposit tx",
+			Action: DepositHash,
+			Flags: []cli.Flag{
+				L1URLFlag,
+				PortalAddressFlag,
+			},
+		},
+		{
+			Name:   "proveWithdrawal",
+			Usage:  "Prove and finalize an L2 -> L1 withdrawal",
+			Action: Main,
+			Flags:  Flags,
+		},
+	}
 
 	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	err := app.RunContext(ctx, os.Args)
@@ -83,10 +94,14 @@ func Main(cliCtx *cli.Context) error {
 	l1URL := cliCtx.String(L1URLFlag.Name)
 	l2URL := cliCtx.String(L2URLFlag.Name)
 	portalAddress := common.HexToAddress(cliCtx.String(PortalAddressFlag.Name))
-	withdrawalTxHash := common.HexToHash(cliCtx.String(WithdrawalTxHashFlag.Name))
 	privateKey, err := crypto.HexToECDSA(cliCtx.String(PrivateKeyFlag.Name))
 	if err != nil {
 		return err
+	}
+
+	withdrawalTxHash := common.HexToHash(cliCtx.Args().First())
+	if (withdrawalTxHash == common.Hash{}) {
+		return fmt.Errorf("invalid withdrawal transaction hash")
 	}
 
 	ctx := context.Background()
@@ -150,4 +165,38 @@ func ProveWithdrawal(ctx context.Context, l1, l2 *ethclient.Client, l2g *gethcli
 		return nil, err
 	}
 	return withdrawals.WaitForReceipt(ctx, l1, tx.Hash(), pollInterval)
+}
+
+func DepositHash(cliCtx *cli.Context) error {
+	l1URL := cliCtx.String(L1URLFlag.Name)
+	portalAddr := common.HexToAddress(cliCtx.String(PortalAddressFlag.Name))
+
+	ctx := context.Background()
+	l1, err := ethclient.DialContext(ctx, l1URL)
+	if err != nil {
+		return err
+	}
+
+	depositTxHash := common.HexToHash(cliCtx.Args().First())
+	if (depositTxHash == common.Hash{}) {
+		return fmt.Errorf("invalid deposit transaction hash")
+	}
+
+	receipt, err := l1.TransactionReceipt(ctx, depositTxHash)
+	if err != nil {
+		return err
+	}
+
+	deposits, err := derive.UserDeposits([]*types.Receipt{receipt}, portalAddr)
+	if err != nil {
+		return err
+	}
+	if len(deposits) != 1 {
+		return fmt.Errorf("expected 1 deposit, got %d", len(deposits))
+	}
+
+	hash := types.NewTx(deposits[0]).Hash()
+	fmt.Println(hash.Hex())
+
+	return nil
 }
