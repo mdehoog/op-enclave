@@ -49,13 +49,6 @@ var (
 	}
 )
 
-var Flags = []cli.Flag{
-	L1URLFlag,
-	L2URLFlag,
-	PortalAddressFlag,
-	PrivateKeyFlag,
-}
-
 func main() {
 	oplog.SetupDefaults()
 
@@ -79,7 +72,12 @@ func main() {
 			Name:   "proveWithdrawal",
 			Usage:  "Prove and finalize an L2 -> L1 withdrawal",
 			Action: Main,
-			Flags:  Flags,
+			Flags: []cli.Flag{
+				L1URLFlag,
+				L2URLFlag,
+				PortalAddressFlag,
+				PrivateKeyFlag,
+			},
 		},
 	}
 
