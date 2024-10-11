@@ -92,7 +92,7 @@ func Main(cliCtx *cli.Context) error {
 	l1URL := cliCtx.String(L1URLFlag.Name)
 	l2URL := cliCtx.String(L2URLFlag.Name)
 	portalAddress := common.HexToAddress(cliCtx.String(PortalAddressFlag.Name))
-	privateKey, err := crypto.HexToECDSA(cliCtx.String(PrivateKeyFlag.Name))
+	privateKey, err := crypto.ToECDSA(common.FromHex(cliCtx.String(PrivateKeyFlag.Name)))
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func Main(cliCtx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Withdrawal proved: %s\n", receipt.TxHash)
+	fmt.Printf("Withdrawal proved and finalized: %s\n", receipt.TxHash)
 
 	return nil
 }
