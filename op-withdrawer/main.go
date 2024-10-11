@@ -37,7 +37,7 @@ var (
 	}
 	PortalAddressFlag = &cli.StringFlag{
 		Name:     "portal-address",
-		Usage:    "Path to the config file",
+		Usage:    "Optimism Portal address",
 		EnvVars:  []string{"PORTAL_ADDRESS"},
 		Required: true,
 	}
