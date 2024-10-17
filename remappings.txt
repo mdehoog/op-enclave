@@ -4,6 +4,7 @@
 @lib-keccak/=lib/optimism/packages/contracts-bedrock/lib/lib-keccak/contracts/lib/
 @openzeppelin/contracts-upgradeable/=lib/optimism/packages/contracts-bedrock/lib/openzeppelin-contracts-upgradeable/contracts/
 @rari-capital/solmate/=lib/optimism/packages/contracts-bedrock/lib/solmate/
+@marlinprotocol/=lib/NitroProver/src/
 src/cannon/interfaces/=lib/optimism/packages/contracts-bedrock/src/cannon/interfaces/
 src/L1/=lib/optimism/packages/contracts-bedrock/src/L1/
 src/L2/=lib/optimism/packages/contracts-bedrock/src/L2/

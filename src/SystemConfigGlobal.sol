@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ISemver } from "@eth-optimism-bedrock/src/universal/interfaces/ISemver.sol";
+import { INitroValidator } from "./INitroValidator.sol";
 
 contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
+    /// @notice The AWS Nitro validator. 
+    INitroValidator public nitroValidator;
+
     /// @notice The address of the proposer.
     address public proposer;
 
@@ -21,7 +25,8 @@ contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
         return "0.0.1";
     }
 
-    constructor() {
+    constructor(INitroValidator _nitroValidator) {
+        nitroValidator = _nitroValidator;
         initialize({
             _owner: address(0xdEaD)
         });
@@ -45,14 +50,12 @@ contract SystemConfigGlobal is OwnableUpgradeable, ISemver {
     }
 
     function registerSigner(bytes calldata attestation) external onlyOwner {
-        // TODO validate AWS attestation, check PCR0, then add public key to mapping of valid signers
-        // https://github.com/marlinprotocol/NitroProver
-        revert("Not implemented");
-    }
+        (bytes memory enclavePublicKey, bytes memory pcr0) = nitroValidator.validateAttestation(attestation, 1 days); //todo maxAge setting
+        require (validPCR0s[keccak256(pcr0)], "invalid pcr0 in attestation");
 
-    // TODO remove this method once the above method is implemented
-    function registerSignerAddress(address signer) external onlyOwner {
-        validSigners[signer] = true;
+        bytes32 publicKeyHash = keccak256(enclavePublicKey);
+        address enclaveAddress = address(uint160(uint256(publicKeyHash)));
+        validSigners[enclaveAddress] = true; 
     }
 
     function deregisterSigner(address signer) external onlyOwner {

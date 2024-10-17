@@ -21,6 +21,7 @@ import { DeployChain } from "src/DeployChain.sol";
 import { Constants } from "@eth-optimism-bedrock/src/libraries/Constants.sol";
 import { ResourceMetering } from "@eth-optimism-bedrock/src/L1/ResourceMetering.sol";
 import { IResourceMetering } from "@eth-optimism-bedrock/src/L1/interfaces/IResourceMetering.sol";
+import { INitroValidator } from "src/INitroValidator.sol";
 
 import { console2 as console } from "forge-std/console2.sol";
 
@@ -133,9 +134,17 @@ contract DeploySystem is Deploy {
         checkSystemConfig({ _contracts: contracts, _cfg: cfg, _isProxy: false });
     }
 
+    // function deployNitroValidator() public broadcast returns (addr_) {
+    //     console.log("Deploying NitroValidator implementation");
+    //     addr_ = address(new NitroValidator());
+    //     save("NitroValidator", addr_);
+    //     console.log("NitroValidator deployed at %s", addr_);
+    // }
+
     function deploySystemConfigGlobal() public broadcast returns (address addr_) {
+        INitroValidator nitroValidator = INitroValidator(mustGetAddress("NitroValidator"));
         console.log("Deploying SystemConfigGlobal implementation");
-        addr_ = address(new SystemConfigGlobal{ salt: _implSalt() }());
+        addr_ = address(new SystemConfigGlobal{ salt: _implSalt() }(nitroValidator));
         save("SystemConfigGlobal", addr_);
         console.log("SystemConfigGlobal deployed at %s", addr_);
     }
